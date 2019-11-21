@@ -36,80 +36,100 @@ class Program {
 class Function{
     public:
         HashTable symbolTable;
+        string name;
         list<string> paramsList;
         string return_type;
         list<Statement> statementList;
+        void mipsFunction(ofstream & mipsFile);
+};
+
+class ObjectStatement {
+    public:
+        void *statementClass;
+        string className;
 };
 
 class Statement {
     public:
-        list<DoWhile> dowhileList;
-        list<While> whileList;
-        list<IF> ifList;
-        list<For> forList;
-        list<Scanf> scanfList;
-        list<Printf> printfList;
-        list<Exit> exitList;
-        list<Return> returnList;
-        list<Expressions> expressionsList;
+        list<ObjectStatement> statement;
+        void mipsStatement(ofstream & mipsFile, int ilabel, string funcName);
 };
 
 class DoWhile {
     public:
         list<Statement> statementList;
-        CondicionalExpression condExp;
+        BoolOperatorCondicional condExp;
+        void mipsDoWhile(ofstream & mipsFile, int label, string funcName);
 };
 
 class While {
     public:
-        CondicionalExpression condExp;
+        BoolOperatorCondicional condExp;
         list<Statement> statementList;
+        void mipsWhile(ofstream & mipsFile, int label, string funcName);
 };
 
 class IF {
     public:
-        CondicionalExpression condExp;
+        BoolOperatorCondicional condExp;
         list<Statement> statementListThen;
         list<Statement> statementListElse;
+        void mipsIF(ofstream & mipsFile, int labelElse, string funcName);
 };
 
 
+class BoolOperatorCondicional {
+    public:
+        CondicionalExpression *condExpLeft;
+        string boolOperator; // && e ||
+        CondicionalExpression *condExpRight;
+        BoolOperatorCondicional *nextBOC;
+        void mipsBOCAnd(ofstream & mipsFile, string op, string R1, string R2, string label);
+        void mipsBOCOR(ofstream & mipsFile, string op, string R1, string R2, string label);
+        void mipsBOCBoolCondicional(ofstream & mipsFile, string labelThen, string labelElse);
+};
+
 class CondicionalExpression {
     public:
-        SimpleExpression *lef; 
-        string op; 
-        SimpleExpression *right;
+        Expression *lef; 
+        string op;  // <, >, <=, >=. !=, ==
+        Expression *right;
 };
 
 
 class For {
     public:
-        list<string> valuesInitialization;
-        CondicionalExpression condExp;
-        list<string> valuesAdjustment;
+        list<Expression> valuesInitialization;
+        BoolOperatorCondicional condExp;
+        list<Expression> valuesAdjustment;
         list<Statement> statementList;
+        void mipsFor(ofstream & mipsFile, int label, string funcName);
 };
 
 class Printf {
     public:
         string out;
         list<Expression> expressionsList;
+        void mipsPrintf(ofstream & mipsFile);
 };
 
 class Scanf {
     public:
         string in;
         string variable;
+        void mipsScanf(ofstream & mipsFile);
 };
 
 class Exit {
     public:
         Expression exp;
+        void mipsExit(ofstream & mipsFile);
 };
 
 class Return {
     public:
         Expression exp;
+        void mipsReturn(ofstream & mipsFile);
 };
 
 class SimpleExpression {
