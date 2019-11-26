@@ -21,7 +21,7 @@ class Item {
 
     //Variáveis e parâmetro
     string var_type; //Categoria do item: int, float, ...
-    string var_dimension; //Dimensão da variavel, caso for um vetor
+    vector<int> var_dimension; //Dimensão da variavel, caso for um vetor
 
     //Funções e Parâmetros
     string var_params; //Parâmetros item

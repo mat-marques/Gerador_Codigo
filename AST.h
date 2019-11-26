@@ -29,6 +29,7 @@ class Program;
 class Program {
     public:
         HashTable symbolTable;
+        list<ASTObject> globals;
         list<Function> functionsList;
 };
 
@@ -43,16 +44,46 @@ class Function{
         void mipsFunction(ofstream & mipsFile);
 };
 
-class ObjectStatement {
+class Variable {
     public:
+        string category; //Global or Local
+        string name;
+        string type;
+        vector<int> dimension; //Caso for vetor, matrix, etc - definir as dimensões do mesmo
+};
+
+class Constant {
+    public:
+        string name;
+        string value;
+};
+
+class CallFunction {
+    public:
+        string funcName;
+        list<Expression> params;
+        void mipsCallFunction(ofstream & mipsFile, int label, string funcName);
+};
+
+class ASTObject {
+    public:
+        // IF, FOR, WHILE, DOWHILE, SCANF, PRINTF, RETURN, EXIT, ASSIGNMENT, CALLFUNCTION, VARIABLE, CONSTANTE
         void *statementClass;
         string className;
 };
 
+class Assignment {
+    public:
+        Variable variable;
+        //Pode ser uma Expression ou um CallFunction
+        ASTObject assignObject;
+        void mipsAssignment(ofstream & mipsFile, int label, string funcName);
+};
+
 class Statement {
     public:
-        list<ObjectStatement> statement;
-        void mipsStatement(ofstream & mipsFile, int ilabel, string funcName);
+        list<ASTObject> statement;
+        void mipsStatement(ofstream & mipsFile, int label, string funcName);
 };
 
 class DoWhile {
@@ -108,16 +139,19 @@ class For {
 
 class Printf {
     public:
-        string out;
-        list<Expression> expressionsList;
-        void mipsPrintf(ofstream & mipsFile);
+        string message;
+        vector<char> variables_type;
+        //Expression and CallFunction
+        list<ASTObject> paramsList;
+        void mipsPrintf(ofstream & mipsFile, int label, string funcName);
 };
 
 class Scanf {
     public:
-        string in;
-        string variable;
-        void mipsScanf(ofstream & mipsFile);
+        string message;
+        vector<char> variables_type; 
+        list<Expression> variables;
+        void mipsScanf(ofstream & mipsFile, int label, string funcName);
 };
 
 class Exit {
@@ -132,19 +166,15 @@ class Return {
         void mipsReturn(ofstream & mipsFile);
 };
 
-class SimpleExpression {
-    public:
-        string op;
-        string term;
-        SimpleExpression *simpleExpressions;
-  
-};
 
 class Expression {
     public:
-        SimpleExpression *left; 
+        ASTObject *term;
+        Expression *left; 
         string op; 
-        SimpleExpression *right;
+        Expression *right;
+        vector<string> mipsExpression(ofstream & mipsFile);
+        Variable *mipsMinimalMunch(ofstream & mipsFile, Expression *ex);
 };
 
 #endif
