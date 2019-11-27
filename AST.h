@@ -208,6 +208,7 @@ class Register {
     public:
         string name;
         string type;
+        string tree;
         Register(){};
 };
 

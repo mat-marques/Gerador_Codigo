@@ -439,7 +439,7 @@ Register mipsADDIConstant(ofstream & mipsFile, ASTObject *ast_obj){
         if(aux->number_type == "INT"){
             mipsFile << "addi R" << indexLabel << ", $zero, " << aux->value << "\n";
             r.name = "R" + indexLabel;
-            r.type = "INT";
+            r.type = "INT"; r.tree = "CONSTANT";
         }
         else if(aux->number_type == "FLOAT"){
             DataLabel *dt = new DataLabel();
@@ -449,7 +449,7 @@ Register mipsADDIConstant(ofstream & mipsFile, ASTObject *ast_obj){
             dataLabelList.push_back(dt);
             mipsFile << "l.s F" << indexLabel << ", " << dt->label << "\n";
             r.name = "F" + indexLabel;
-            r.type = "FLOAT";
+            r.type = "FLOAT"; r.tree = "CONSTANT";
             floatLabel++;
         }
         else if(aux->number_type == "DOUBLE"){
@@ -460,7 +460,7 @@ Register mipsADDIConstant(ofstream & mipsFile, ASTObject *ast_obj){
             dataLabelList.push_back(dt);
             mipsFile << "l.d F" << indexLabel << ", " << dt->label << "\n";
             r.name = "F" + indexLabel;
-            r.type = "DOUBLE";
+            r.type = "DOUBLE"; r.tree = "CONSTANT";
             doubleLabel++;
         } 
     }
@@ -470,18 +470,18 @@ Register mipsADDIConstant(ofstream & mipsFile, ASTObject *ast_obj){
         if(aux->var_type == "INT"){
             mipsFile << "addi R" << indexLabel << ", $zero, " << aux->name << "\n";
             r.name = "R" + indexLabel;
-            r.type = "INT";
+            r.type = "INT"; r.tree = "CONSTANT";
         }
         else if(aux->var_type == "FLOAT"){
             mipsFile << "mov.s FS" << indexLabel << ", " << aux->name << "\n";
             r.name = "F" + indexLabel;
-            r.type = "FLOAT";
+            r.type = "FLOAT"; r.tree = "CONSTANT";
             floatLabel++;
         }
         else if(aux->var_type == "DOUBLE"){
             mipsFile << "mov.d FD" << indexLabel << ", " << aux->name << "\n";
             r.name = "F" + indexLabel;
-            r.type = "DOUBLE";
+            r.type = "DOUBLE"; r.tree = "CONSTANT";
             doubleLabel++;
         }
     }
@@ -490,7 +490,7 @@ Register mipsADDIConstant(ofstream & mipsFile, ASTObject *ast_obj){
         if(aux->const_type == "INT"){
             mipsFile << "addi R" << indexLabel << ", $zero, " << aux->value << "\n";
             r.name = "R" + indexLabel;
-            r.type = "INT";
+            r.type = "INT"; r.tree = "CONSTANT";
         }
         else if(aux->const_type == "FLOAT"){
             DataLabel *dt = new DataLabel();
@@ -500,7 +500,7 @@ Register mipsADDIConstant(ofstream & mipsFile, ASTObject *ast_obj){
             dataLabelList.push_back(dt);
             mipsFile << "l.s F" << indexLabel << ", " << dt->label << "\n";
             r.name = "F" + indexLabel;
-            r.type = "FLOAT";
+            r.type = "FLOAT"; r.tree = "CONSTANT";
             floatLabel++;
         }
         else if(aux->const_type == "DOUBLE"){
@@ -511,7 +511,7 @@ Register mipsADDIConstant(ofstream & mipsFile, ASTObject *ast_obj){
             dataLabelList.push_back(dt);
             mipsFile << "l.d F" << indexLabel << ", " << dt->label << "\n";
             r.name = "F" + indexLabel;
-            r.type = "DOUBLE";
+            r.type = "DOUBLE"; r.tree = "CONSTANT";
             doubleLabel++;
         } 
     }
@@ -524,17 +524,17 @@ Register mipsADDIConstant(ofstream & mipsFile, ASTObject *ast_obj){
         if(aux->callfunc_type == "INT") {
             mipsFile << "move R" << indexLabel << ", $zero, $v0\n";
             r.name = "R" + indexLabel;
-            r.type = "INT";
+            r.type = "INT"; r.tree = "CONSTANT";
         }
         else if(aux->callfunc_type == "FLOAT") {
             mipsFile << "movs F" << indexLabel << ", $v0\n";
             r.name = "F" + indexLabel;
-            r.type = "FLOAT";
+            r.type = "FLOAT"; r.tree = "CONSTANT";
         }
         else if(aux->callfunc_type == "DOUBLE") {
             mipsFile << "mov.d F" << indexLabel << ", $v0\n";
             r.name = "F" + indexLabel;
-            r.type = "DOUBLE";
+            r.type = "DOUBLE"; r.tree = "CONSTANT";
         } 
     }
 
@@ -548,86 +548,120 @@ Register mipsADDIOperations(ofstream & mipsFile, string op, Register reg1, Regis
     if(reg1.type == "INT" && reg2.type == "INT"){
         if(op == "+") {
             mipsFile << "add R" << indexLabel << ", " << reg1.name << ", " << reg2.name << "\n";
+            r.name = "R" + indexLabel; r.type = "INT"; r.tree = "OPERATION";
         } else if(op == "-") {
             mipsFile << "sub R" << indexLabel << ", " << reg1.name << ", " << reg2.name << "\n";
+            r.name = "R" + indexLabel; r.type = "INT"; r.tree = "OPERATION";
         } else if(op == "*") {
-            mipsFile << "mul " << reg1.name << ", " << reg2.name << "\n";
+            mipsFile << "mult " << reg1.name << ", " << reg2.name << "\n";
+            mipsFile << "mflo R" << indexLabel << "\n";
+            r.name = "R" + indexLabel; r.type = "INT"; r.tree = "OPERATION";
         } else if(op == "/") {
             mipsFile << "div " << reg1.name << ", " << reg2.name << "\n";
+            mipsFile << "mfhi R" << indexLabel << "\n";
+            r.name = "R" + indexLabel; r.type = "INT"; r.tree = "OPERATION";
         }
     } 
     else if(reg1.type == "FLOAT" && reg2.type == "INT") {
-        mipsFile << "mtc1 " << reg2.name << ", mips_aux_variable_con\n";
-        mipsFile << "cvt.s.w mips_aux_variable_con, mips_aux_variable_con\n";
+        string auxr = reg2.name + to_string(indexLabel);
+        mipsFile << "mtc1 " << reg2.name << ", " << auxr <<"\n";
+        mipsFile << "cvt.s.w " << auxr << ", " << auxr << "\n";
         if(op == "+") {
-            mipsFile << "add.s F" << indexLabel << ", " << reg1.name << ", mips_aux_variable_con\n";
+            mipsFile << "add.s F" << indexLabel << ", " << reg1.name << ", " << auxr << "\n";
+            r.name = "F" + indexLabel; r.type = "FLOAT"; r.tree = "OPERATION";
         } else if(op == "-") {
-            mipsFile << "sub.s F" << indexLabel << ", " << reg1.name << ", mips_aux_variable_con\n";
+            mipsFile << "sub.s F" << indexLabel << ", " << reg1.name << ", " << auxr << "\n";
+            r.name = "F" + indexLabel; r.type = "FLOAT"; r.tree = "OPERATION";
         } else if(op == "*") {
-            mipsFile << "mul.s mips_aux_variable, " << reg1.name << ", mips_aux_variable_con\n";
+            mipsFile << "mul.s F" << indexLabel << ", " << reg1.name << ", " << auxr << "\n";
+            r.name = "F" + indexLabel; r.type = "FLOAT"; r.tree = "OPERATION";
         } else if(op == "/") {
-            mipsFile << "div.s mips_aux_variable, " << reg1.name << ", mips_aux_variable_con\n";
+            mipsFile << "div.s F" << indexLabel << ", " << reg1.name << ", " << auxr << "\n";
+            r.name = "F" + indexLabel; r.type = "FLOAT"; r.tree = "OPERATION";
         }
     } 
     else if(reg1.type == "INT" && reg2.type == "FLOAT") {
-        mipsFile << "mtc1 " << reg1.name << ", mips_aux_variable_con\n";
-        mipsFile << "cvt.s.w mips_aux_variable_con, mips_aux_variable_con\n";
+        string auxr = reg1.name + to_string(indexLabel);
+        mipsFile << "mtc1 " << reg1.name << ", " << auxr <<"\n";
+        mipsFile << "cvt.s.w " << auxr << ", " << auxr << "\n";
         if(op == "+") {
-            mipsFile << "add.s mips_aux_variable, mips_aux_variable_con, " << reg2.name << "\n";
+            mipsFile << "add.s F" << indexLabel << ", " << auxr << ", " << reg2.name << "\n";
+            r.name = "F" + indexLabel; r.type = "FLOAT"; r.tree = "OPERATION";
         } else if(op == "-") {
-            mipsFile << "sub.s mips_aux_variable, mips_aux_variable_con, " << reg2.name << "\n";
+            mipsFile << "sub.s F" << indexLabel << ", " << auxr << ", " << reg2.name << "\n";
+            r.name = "F" + indexLabel; r.type = "FLOAT"; r.tree = "OPERATION";
         } else if(op == "*") {
-            mipsFile << "mul.s mips_aux_variable, mips_aux_variable_con, " << reg2.name << "\n";
+            mipsFile << "mul.s F" << indexLabel << ", " << auxr << ", " << reg2.name << "\n";
+            r.name = "F" + indexLabel; r.type = "FLOAT"; r.tree = "OPERATION";
         } else if(op == "/") {
-            mipsFile << "div.s mips_aux_variable, mips_aux_variable_con, " << reg2.name << "\n";
+            mipsFile << "div.s F" << indexLabel << ", " << auxr << ", " << reg2.name << "\n";
+            r.name = "F" + indexLabel; r.type = "FLOAT"; r.tree = "OPERATION";
         }
     } 
     else if(reg1.type == "FLOAT" && reg2.type == "FLOAT") {
         if(op == "+") {
-            mipsFile << "add.s mips_aux_variable, " << reg1.name << ", " << reg2.name << "\n";
+            mipsFile << "add.s F" << indexLabel << ", " << reg1.name << ", " << reg2.name << "\n";
+            r.name = "F" + indexLabel; r.type = "FLOAT"; r.tree = "OPERATION";
         } else if(op == "-") {
-            mipsFile << "sub.s mips_aux_variable, " << reg1.name << ", " << reg2.name << "\n";
+            mipsFile << "sub.s F" << indexLabel << ", " << reg1.name << ", " << reg2.name << "\n";
+            r.name = "F" + indexLabel; r.type = "FLOAT"; r.tree = "OPERATION";
         } else if(op == "*") {
-            mipsFile << "mul.s " << reg1.name << ", " << reg2.name << "\n";
+            mipsFile << "mul.s F" << indexLabel << ", " << reg1.name << ", " << reg2.name << "\n";
+            r.name = "F" + indexLabel; r.type = "FLOAT"; r.tree = "OPERATION";
         } else if(op == "/") {
-            mipsFile << "div.s " << reg1.name << ", " << reg2.name << "\n";
+            mipsFile << "div.s F" << indexLabel << ", " << reg1.name << ", " << reg2.name << "\n";
+            r.name = "F" + indexLabel; r.type = "FLOAT"; r.tree = "OPERATION";
         }
     } 
     else if(reg1.type == "DOUBLE" && reg2.type == "INT") {
-        mipsFile << "mtc1 " << reg2.name << ", mips_aux_variable_con\n";
-        mipsFile << "cvt.s.w mips_aux_variable_con, mips_aux_variable_con\n";
+        string auxr = reg2.name + to_string(indexLabel);
+        mipsFile << "mtc1 " << reg2.name << ", " << auxr <<"\n";
+        mipsFile << "cvt.d.w " << auxr << ", " << auxr << "\n";
         if(op == "+") {
-            mipsFile << "add.d mips_aux_variable, " << reg1.name << ", mips_aux_variable_con\n";
+            mipsFile << "add.d F" << indexLabel  << ", " << reg1.name << ", " << auxr << "\n";
+            r.name = "F" + indexLabel; r.type = "DOUBLE"; r.tree = "OPERATION";
         } else if(op == "-") {
-            mipsFile << "sub.d mips_aux_variable, " << reg1.name << ", mips_aux_variable_con\n";
+            mipsFile << "sub.d F" << indexLabel  << ", " << reg1.name << ", " << auxr << "\n";
+            r.name = "F" + indexLabel; r.type = "DOUBLE"; r.tree = "OPERATION";
         } else if(op == "*") {
-            mipsFile << "mul.d mips_aux_variable, " << reg1.name << ", mips_aux_variable_con\n";
+            mipsFile << "mul.d F" << indexLabel  << ", " << reg1.name << ", " << auxr << "\n";
+            r.name = "F" + indexLabel; r.type = "DOUBLE"; r.tree = "OPERATION";
         } else if(op == "/") {
-            mipsFile << "div.d mips_aux_variable, " << reg1.name << ", mips_aux_variable_con\n";
+            mipsFile << "div.d F" << indexLabel  << ", " << reg1.name << ", " << auxr << "\n";
+            r.name = "F" + indexLabel; r.type = "DOUBLE"; r.tree = "OPERATION";
         }
     } 
     else if(reg1.type == "INT" && reg2.type == "DOUBLE") {
-        mipsFile << "mtc1 " << reg1.name << ", mips_aux_variable_con\n";
-        mipsFile << "cvt.d.w mips_aux_variable_con, mips_aux_variable_con\n";
+        string auxr = reg1.name + to_string(indexLabel);
+        mipsFile << "mtc1 " << reg1.name << ", " << auxr <<"\n";
+        mipsFile << "cvt.d.w " << auxr << ", " << auxr << "\n";
         if(op == "+") {
-            mipsFile << "add.d mips_aux_variable, mips_aux_variable_con, " << reg2.name << "\n";
+            mipsFile << "add.d F" << indexLabel  << ", " << auxr << ", " << reg2.name << "\n";
+            r.name = "F" + indexLabel; r.type = "DOUBLE"; r.tree = "OPERATION";
         } else if(op == "-") {
-            mipsFile << "sub.d mips_aux_variable, mips_aux_variable_con, " << reg2.name << "\n";
+            mipsFile << "sub.d F" << indexLabel  << ", " << auxr << ", " << reg2.name << "\n";
+            r.name = "F" + indexLabel; r.type = "DOUBLE"; r.tree = "OPERATION";
         } else if(op == "*") {
-            mipsFile << "mul.d mips_aux_variable, mips_aux_variable_con, " << reg2.name << "\n";
+            mipsFile << "mul.d F" << indexLabel  << ", " << auxr << ", " << reg2.name << "\n";
+            r.name = "F" + indexLabel; r.type = "DOUBLE"; r.tree = "OPERATION";
         } else if(op == "/") {
-            mipsFile << "div.d mips_aux_variable, mips_aux_variable_con, " << reg2.name << "\n";
+            mipsFile << "div.d F" << indexLabel  << ", " << auxr << ", " << reg2.name << "\n";
+            r.name = "F" + indexLabel; r.type = "DOUBLE"; r.tree = "OPERATION";
         }
     } 
     else if(reg1.type == "DOUBLE" || reg2.type == "DOUBLE") {
         if(op == "+") {
-            mipsFile << "add.d mips_aux_variable, " << reg1.name << ", " << reg2.name << "\n";
+            mipsFile << "add.d F" << indexLabel  << ", " << reg1.name << ", " << reg2.name << "\n";
+            r.name = "F" + indexLabel; r.type = "DOUBLE"; r.tree = "OPERATION";
         } else if(op == "-") {
-            mipsFile << "sub.d mips_aux_variable, " << reg1.name << ", " << reg2.name << "\n";
+            mipsFile << "sub.d F" << indexLabel  << ", " << reg1.name << ", " << reg2.name << "\n";
+            r.name = "F" + indexLabel; r.type = "DOUBLE"; r.tree = "OPERATION";
         } else if(op == "*") {
-            mipsFile << "mul.d " << reg1.name << ", " << reg2.name << "\n";
+            mipsFile << "mul.d F" << indexLabel  << ", " << reg1.name << ", " << reg2.name << "\n";
+            r.name = "F" + indexLabel; r.type = "DOUBLE"; r.tree = "OPERATION";
         } else if(op == "/") {
-            mipsFile << "div.d " << reg1.name << ", " << reg2.name << "\n";
+            mipsFile << "div.d F" << indexLabel  << ", " << reg1.name << ", " << reg2.name << "\n";
+            r.name = "F" + indexLabel; r.type = "DOUBLE"; r.tree = "OPERATION";
         }
     }
 
@@ -635,15 +669,193 @@ Register mipsADDIOperations(ofstream & mipsFile, string op, Register reg1, Regis
     return r;
 }
 
-
-vector<string> Expression::mipsMinimalExpression(ofstream & mipsFile, Expression *ex){
-    ASTObject *ast_obj = ex->term;
-    //ADDI Constante
-    if(ast_obj->className == "VARIABLE" || ast_obj->className == "CONSTANTE" || 
-    ast_obj->className == "NUMBER" || ast_obj->className == "CALLFUNCTION") {
-
+Register mipsLoad(ofstream & mipsFile, ASTObject *ast_obj, Register reg1) {
+    Register r;
+    r.name = ""; r.type = "";
+    if(reg1.type == "INT") {
+        if(ast_obj->className == "VARIABLE") {
+            Variable *v = static_cast<Variable*>(ast_obj->statementClass);
+            if(v->var_type == "INT") {
+                mipsFile << "addi aux, $zero, 4\n";
+                mipsFile << "mult " << reg1.name << ", aux\n";
+                mipsFile << "mflo posic\n";
+                mipsFile << "add vetor" << ", " << v->name << ", posic\n";
+                mipsFile << "lw R" << indexLabel << ", (vetor)\n";
+                r.name = "R" + indexLabel; r.type = "INT"; r.tree = "LOAD";
+            }
+            if(v->var_type == "CHAR") {
+                mipsFile << "addi aux, $zero, 1\n";
+                mipsFile << "mult " << reg1.name << ", aux\n";
+                mipsFile << "mflo posic\n";
+                mipsFile << "add vetor" << ", " << v->name << ", posic\n";
+                mipsFile << "lw R" << indexLabel << ", (vetor)\n";
+                r.name = "R" + indexLabel; r.type = "CHAR"; r.tree = "LOAD";
+            }
+            if(v->var_type == "FLOAT") {
+                mipsFile << "addi aux, $zero, 4\n";
+                mipsFile << "mult " << reg1.name << ", aux\n";
+                mipsFile << "mflo posic\n";
+                mipsFile << "add vetor" << ", " << v->name << ", posic\n";
+                mipsFile << "l.s F" << indexLabel << ", (vetor)\n";
+                r.name = "F" + indexLabel; r.type = "FLOAT"; r.tree = "LOAD";
+            }
+            if(v->var_type == "DOUBLE") {
+                mipsFile << "addi aux, $zero, 8\n";
+                mipsFile << "mult " << reg1.name << ", aux\n";
+                mipsFile << "mflo posic\n";
+                mipsFile << "add vetor" << ", " << v->name << ", posic\n";
+                mipsFile << "l.d F" << indexLabel << ", (vetor)\n";
+                r.name = "F" + indexLabel; r.type = "DOUBLE"; r.tree = "LOAD";
+            }
+        }
+        else if(ast_obj->className == "CALLFUNCTION") {
+            CallFunction *c = static_cast<CallFunction*>(ast_obj->statementClass);
+            if(c->callfunc_type == "INT") {
+                mipsFile << "addi aux, $zero, 4\n";
+                mipsFile << "mult " << reg1.name << ", aux\n";
+                mipsFile << "mflo posic\n";
+                mipsFile << "add vetor" << ", " << c->funcName << ", posic\n";
+                mipsFile << "lw R" << indexLabel << ", (vetor)\n";
+                r.name = "R" + indexLabel; r.type = "INT"; r.tree = "LOAD";
+            }
+            if(c->callfunc_type == "CHAR") {
+                mipsFile << "addi aux, $zero, 1\n";
+                mipsFile << "mult " << reg1.name << ", aux\n";
+                mipsFile << "mflo posic\n";
+                mipsFile << "add vetor" << ", " << c->funcName << ", posic\n";
+                mipsFile << "lw R" << indexLabel << ", (vetor)\n";
+                r.name = "R" + indexLabel; r.type = "CHAR"; r.tree = "LOAD";
+            }
+            if(c->callfunc_type == "FLOAT") {
+                mipsFile << "addi aux, $zero, 4\n";
+                mipsFile << "mult " << reg1.name << ", aux\n";
+                mipsFile << "mflo posic\n";
+                mipsFile << "add vetor" << ", " << c->funcName << ", posic\n";
+                mipsFile << "l.s F" << indexLabel << ", (vetor)\n";
+                r.name = "F" + indexLabel; r.type = "FLOAT"; r.tree = "LOAD";
+            }
+            if(c->callfunc_type == "DOUBLE") {
+                mipsFile << "addi aux, $zero, 8\n";
+                mipsFile << "mult " << reg1.name << ", aux\n";
+                mipsFile << "mflo posic\n";
+                mipsFile << "add vetor" << ", " << c->funcName << ", posic\n";
+                mipsFile << "l.d F" << indexLabel << ", (vetor)\n";
+                r.name = "F" + indexLabel; r.type = "DOUBLE"; r.tree = "LOAD";
+            }
+        }
     }
+    return r;
 }
+
+Register mipsStore(ofstream & mipsFile, ASTObject *ast_obj, Register reg1, Register reg2) {
+    Register r;
+    r.name = ""; r.type = "";
+
+    if(reg1.type == reg2.type) {
+        if(reg1.type == "INT") {
+            mipsFile << "sw " << reg2.name << ", (" << reg1.name << ")\n";
+            r = reg1; r.tree = "STORE";
+        }
+        if(reg1.type == "CHAR") {
+            mipsFile << "sw " << reg2.name << ", (" << reg1.name << ")\n";
+            r = reg1; r.tree = "STORE";
+        }
+        if(reg1.type == "FLOAT") {
+            mipsFile << "s.s" << reg2.name << ", (" << reg1.name << ")\n";
+            r = reg1; r.tree = "STORE";
+        }
+        if(reg1.type == "DOUBLE") {
+            mipsFile << "s.d" << reg2.name << ", (" << reg1.name << ")\n";
+            r = reg1; r.tree = "STORE";
+        }
+    }
+
+    return r;
+}
+
+Register mipsMove(ofstream & mipsFile, Expression *ex, Register reg1, Register reg2) {
+    Register r;
+    r.name = ""; r.type = "";
+    ASTObject *left = ex->left->term;
+    ASTObject *right = ex->right->term;
+    string regLeft, regRight;
+
+    if(left->className == "VARIABLE") {
+        Variable *v = static_cast<Variable*>(left->statementClass);
+        regLeft = v->name;
+    }
+
+    if(right->className == "VARIABLE") {
+        CallFunction *c = static_cast<CallFunction*>(right->statementClass);
+        regRight = c->funcName;
+    }
+
+    if(reg1.type == reg2.type) {
+        if(reg1.type == "INT") {
+            mipsFile << "addi aux, $zero, 4\n";
+            mipsFile << "mult " << reg1.name << ", aux\n";
+            mipsFile << "mflo posic\n";
+            mipsFile << "add vetor1" << ", " << reg1.name << ", posic\n";
+
+            mipsFile << "mult " << reg2.name << ", aux\n";
+            mipsFile << "mflo posic\n";
+            mipsFile << "add vetor2" << ", " << reg2.name << ", posic\n"; 
+        
+            mipsFile << "lw R" << indexLabel << ", (vetor2)\n";
+            mipsFile << "sw R, (vetor1)\n";
+
+            r.name = "R" + indexLabel; r.type = "INT"; r.tree = "MOVE";
+        }
+        if(reg1.type == "CHAR") {
+            mipsFile << "addi aux, $zero, 1\n";
+            mipsFile << "mult " << reg1.name << ", aux\n";
+            mipsFile << "mflo posic\n";
+            mipsFile << "add vetor1" << ", " << reg1.name << ", posic\n";
+
+            mipsFile << "mult " << reg2.name << ", aux\n";
+            mipsFile << "mflo posic\n";
+            mipsFile << "add vetor2" << ", " << reg2.name << ", posic\n"; 
+        
+            mipsFile << "lw R" << indexLabel << ", (vetor2)\n";
+            mipsFile << "sw R, (vetor1)\n";
+            
+            r.name = "R" + indexLabel; r.type = "CHAR"; r.tree = "MOVE";
+        }
+        if(reg1.type == "FLOAT") {
+            mipsFile << "addi aux, $zero, 4\n";
+            mipsFile << "mult " << reg1.name << ", aux\n";
+            mipsFile << "mflo posic\n";
+            mipsFile << "add vetor1" << ", " << reg1.name << ", posic\n";
+
+            mipsFile << "mult " << reg2.name << ", aux\n";
+            mipsFile << "mflo posic\n";
+            mipsFile << "add vetor2" << ", " << reg2.name << ", posic\n"; 
+        
+            mipsFile << "l.s R" << indexLabel << ", (vetor2)\n";
+            mipsFile << "s.s R, (vetor1)\n";
+            
+            r.name = "F" + indexLabel; r.type = "FLOAT"; r.tree = "MOVE";
+        }
+        if(reg1.type == "DOUBLE") {
+            mipsFile << "addi aux, $zero, 4\n";
+            mipsFile << "mult " << reg1.name << ", aux\n";
+            mipsFile << "mflo posic\n";
+            mipsFile << "add vetor1" << ", " << reg1.name << ", posic\n";
+
+            mipsFile << "mult " << reg2.name << ", aux\n";
+            mipsFile << "mflo posic\n";
+            mipsFile << "add vetor2" << ", " << reg2.name << ", posic\n"; 
+        
+            mipsFile << "l.d R" << indexLabel << ", (vetor2)\n";
+            mipsFile << "s.d R, (vetor1)\n";
+            
+            r.name = "F" + indexLabel; r.type = "DOUBLE"; r.tree = "MOVE";
+        }
+    }
+
+    return r;
+}
+
 
 Register Expression::mipsMinimalMunch(ofstream & mipsFile, Expression *ex){
     Register reg1, reg2, reg;
@@ -656,11 +868,20 @@ Register Expression::mipsMinimalMunch(ofstream & mipsFile, Expression *ex){
 
     reg2 = ex->mipsMinimalMunch(mipsFile, ex->right);
 
-    if(reg1.name == "" && reg2.name == "") {
+    if(reg1.tree == "" && reg2.tree == "") {
         reg = mipsADDIConstant(mipsFile, ex->term);
     } 
-    else if(reg1.name != "" && reg2.name != "") {
-        mipsADDIOperations(mipsFile, ex->op, reg1, reg2);
+    else if(reg1.tree == "CONSTANT" && reg2.tree == "CONSTANT") {
+        reg = mipsADDIOperations(mipsFile, ex->op, reg1, reg2);
+    }
+    else if((reg1.tree == "CONSTANT" || reg1.tree == "OPERATION") && reg2.tree == "") { //Para vetores
+        reg = mipsLoad(mipsFile, ex->term, reg1);
+    }
+    else if(reg1.name == "LOAD" && reg2.name != "") {
+        reg = mipsStore(mipsFile, ex->term, reg1, reg2);
+    }
+    else if(reg1.name == "LOAD" && reg2.name == "LOAD") {
+        reg = mipsMove(mipsFile, ex, reg1, reg2);
     }
 
     return reg;
