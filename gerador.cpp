@@ -1,10 +1,21 @@
 #include <iostream>
 #include <string>
-#include "AST.h"
+#include "Arquivo.h"
 
 using namespace std;
 
 int main() {
+
+   string input;
+   vector<string> file_input;
+   //Leitura da entrada
+   while(getline(cin, input)) {
+      file_input.push_back(input);
+   }
+   Arquivo *file = new Arquivo(file_input);
+   
+   return 0;
+   /*
    Program *p = new Program();
    Function *fatorial = new Function();
    Function *main_ = new Function();
@@ -113,6 +124,6 @@ int main() {
    s->statement.push_back(asrr);
    main_->statementList.push_back(s);
 
-   return 0;
+   return 0;*/
 }
 
