@@ -25,6 +25,13 @@ class Expressions;
 class Statement;
 class Function;
 class Program;
+class StringsLabel;
+class DataLabel;
+class MipsInstruction;
+
+list<MipsInstruction*> instructionList;
+list<StringsLabel*> stringsLabelList;
+list<DataLabel*> dataLabelList;
 
 class Program {
     public:
@@ -223,5 +230,41 @@ class Expression {
         Expression(){};
 };
 
+class StringsLabel{
+    public:
+        string label;
+        string message;
+        void mipsStringsLabel(ofstream & mipsFile) {
+            mipsFile << this->label << ": ";
+            mipsFile << ".asciiz " << "\"" << this->message << "\"\n";
+        };
+};
+
+class DataLabel{
+    public:
+        string label;
+        string data_type;
+        string value;
+        void mipsDataLabel(ofstream & mipsFile) {
+            mipsFile << this->label << ": ";
+            mipsFile << "." << this->data_type << ": " << this->value << "\n";
+        };
+};
+
+class MipsInstruction{
+    public:
+        string label;
+        string instruction;
+        string register1;
+        string register2;
+        string register3;
+        MipsInstruction(string label, string instruction, string register1, string register2, string register3){
+            this->label = label;
+            this->instruction= instruction;
+            this->register1= register1;
+            this->register2= register2;
+            this->register3= register3;
+        };
+};
 
 #endif
