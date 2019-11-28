@@ -154,7 +154,7 @@ class BoolOperatorCondicional {
 
 class CondicionalExpression {
     public:
-        Expression *lef; 
+        Expression *left; 
         string op;  // <, >, <=, >=. !=, ==
         Expression *right;
         CondicionalExpression(){};
@@ -218,9 +218,8 @@ class Expression {
         Expression *left; 
         string op; 
         Expression *right;
-        vector<string> mipsExpression(ofstream & mipsFile);
+        Register mipsExpression(ofstream & mipsFile);
         Register mipsMinimalMunch(ofstream & mipsFile, Expression *ex);
-        vector<string> mipsMinimalExpression(ofstream & mipsFile, Expression *ex);
         Expression(){};
 };
 

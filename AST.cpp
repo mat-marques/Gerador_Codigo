@@ -20,6 +20,8 @@ class DataLabel{
         string data_type;
         string value;
         void mipsDataLabel(ofstream & mipsFile) {
+            mipsFile << this->label << ": ";
+            mipsFile << "." << this->data_type << ": " << this->value << "\n";
         };
 };
 
@@ -37,8 +39,14 @@ void Function::mipsFunction(ofstream & mipsFile){
         (*it)->mipsStatement(mipsFile, 0, this->name);
     }
 
+    //Mips para a declaração de string para o scanf e printf
     for (std::list<StringsLabel*>::iterator it = stringsLabelList.begin(); it != stringsLabelList.end(); ++it) {
         (*it)->mipsStringsLabel(mipsFile);
+    }
+
+    //Mips para a declaração de floats e doubles
+    for (std::list<DataLabel*>::iterator it = dataLabelList.begin(); it != dataLabelList.end(); ++it) {
+        (*it)->mipsDataLabel(mipsFile);
     }
 }
 
@@ -92,10 +100,10 @@ void Statement::mipsStatement(ofstream & mipsFile, int label, string funcName){
             CallFunction *callfunctionObject = static_cast<CallFunction*>( (*it)->statementClass );
             callfunctionObject->mipsCallFunction(mipsFile, funcName);
         }
-        else if((*it)->className == "ASSIGNMENT"){
-            Assignment *assignmentObject = static_cast<Assignment*>( (*it)->statementClass );
-            assignmentObject->mipsAssignment(mipsFile, assignmentLabel, funcName);
-        }
+        // else if((*it)->className == "ASSIGNMENT"){
+        //     Assignment *assignmentObject = static_cast<Assignment*>( (*it)->statementClass );
+        //     assignmentObject->mipsAssignment(mipsFile, assignmentLabel, funcName);
+        // }
         else {
             cout << "Estrutura não encontrada" << endl;
         }
@@ -107,22 +115,28 @@ void Statement::mipsStatement(ofstream & mipsFile, int label, string funcName){
 *       MIPS PARA O CallFunction
 */
 void CallFunction::mipsCallFunction(ofstream & mipsFile, string funcName){
-    vector<string> reg;
+    Register reg;
     int sp_size = this->params.size;
-    //Fazer o minimal munch; Deve retornar um vetor com os registradores
-    if(this->params.size <= 4) { //Colocar nos registradores $a
-        if(this->params.size >= 1)
-            mipsFile << "move $a0, " << reg[0]  << "\n";
-        if(this->params.size >= 2)
-            mipsFile << "move $a1, " << reg[1]  << "\n";
-        if(this->params.size >= 3)
-            mipsFile << "move $a2, " << reg[2]  << "\n";
-        if(this->params.size >= 4)
-            mipsFile << "move $a3, " << reg[3]  << "\n";
+    //Minimal Munch
+    if(this->params.size <= 4) { //Coloca nos registradores $a
+        for(std::list<Expression*>::iterator it = this->params.begin(); it != this->params.end(); ++it){
+            reg = (*it)->mipsExpression(mipsFile); //Minimal Munch
+            if(this->params.size >= 1)
+                mipsFile << "move $a0, " << reg.name  << "\n";
+            if(this->params.size >= 2)
+                mipsFile << "move $a1, " << reg.name  << "\n";
+            if(this->params.size >= 3)
+                mipsFile << "move $a2, " << reg.name  << "\n";
+            if(this->params.size >= 4)
+                mipsFile << "move $a3, " << reg.name  << "\n";
+        }
     } else {
         mipsFile << "addi $sp, $sp, -" << (sp_size*4) << "\n";
-        for(int i = 0; i < sp_size; i++){
-            mipsFile << "sw " << reg[i] << ", " << i << "($sp)"  << "\n";
+        int i = 0;
+        for(std::list<Expression*>::iterator it = this->params.begin(); it != this->params.end(); ++it){
+            reg = (*it)->mipsExpression(mipsFile); //Minimal Munch
+            mipsFile << "sw " << reg.name << ", " << i << "($sp)"  << "\n";
+            i = i + 4;
         }
     }
 
@@ -134,10 +148,19 @@ void CallFunction::mipsCallFunction(ofstream & mipsFile, string funcName){
 *       MIPS PARA O Assignment
 */
 void Assignment::mipsAssignment(ofstream & mipsFile, int label, string funcName){
-    string reg;
+    Register reg;
     //Minimal Munch; Retorna o registrador em reg
+    if(this->assignObject->className == "EXPRESSION") {
+        Expression *ex = static_cast<Expression*>(this->assignObject->statementClass);
+        reg = ex->mipsExpression(mipsFile);
+    }
+    else if(this->assignObject->className == "CALLFUNCTION") {
+        CallFunction *c = static_cast<CallFunction*>(this->assignObject->statementClass);
+        c->mipsCallFunction(mipsFile, func_name);
+        reg.name = "$v0"; reg.type = c->callfunc_type;
+    }
 
-    mipsFile << "move " << this->variable.name << ", " << reg << "\n";
+    mipsFile << "move " << this->variable.name << ", " << reg.name << "\n";
 }
 
 /*
@@ -228,29 +251,39 @@ void BoolOperatorCondicional::mipsBOCOR(ofstream & mipsFile, string op, string R
 }
 
 void BoolOperatorCondicional::mipsBOCBoolCondicional(ofstream & mipsFile, string labelThen, string labelElse){
-    string R1, R2; //Registradores que o minimal munch tem que retornar
+    Register R1, R2;//Registradores que o minimal munch tem que retornar
     BoolOperatorCondicional *aux = this;
     while(aux != NULL) {
         if(aux->boolOperator == "&&") {
             //Minimal munch para o lado esquerdo
-            this->mipsBOCAnd(mipsFile, aux->condExpLeft->op, R1, R2, labelElse);
+            R1 = this->condExpLeft->left->mipsExpression(mipsFile);
+            R2 = this->condExpLeft->right->mipsExpression(mipsFile);
+            this->mipsBOCAnd(mipsFile, aux->condExpLeft->op, R1.name, R2.name, labelElse);
             if(aux->condExpRight != NULL){
                 //Minimal munch para o lado direito
-                this->mipsBOCAnd(mipsFile, aux->condExpRight->op, R1, R2, labelElse);
+                R1 = this->condExpRight->left->mipsExpression(mipsFile);
+                R2 = this->condExpRight->right->mipsExpression(mipsFile);
+                this->mipsBOCAnd(mipsFile, aux->condExpRight->op, R1.name, R2.name, labelElse);
             }
         }
         else if(aux->boolOperator == "||") {
             //Minimal munch para o lado esquerdo
-            this->mipsBOCOR(mipsFile, aux->condExpLeft->op, R1, R2, labelThen);
+            R1 = this->condExpLeft->left->mipsExpression(mipsFile);
+            R2 = this->condExpLeft->right->mipsExpression(mipsFile);
+            this->mipsBOCOR(mipsFile, aux->condExpLeft->op, R1.name, R2.name, labelThen);
             
             if(aux->condExpRight != NULL){
                 //Minimal munch para o lado direito
-                this->mipsBOCAnd(mipsFile, aux->condExpRight->op, R1, R2, labelElse);
+                R1 = this->condExpRight->left->mipsExpression(mipsFile);
+                R2 = this->condExpRight->right->mipsExpression(mipsFile);
+                this->mipsBOCAnd(mipsFile, aux->condExpRight->op, R1.name, R2.name, labelElse);
             }
         }
         else if(aux->boolOperator == "") {
             //Minimal munch para o lado esquerdo
-            this->mipsBOCAnd(mipsFile, aux->condExpLeft->op, R1, R2, labelElse);
+            R1 = this->condExpLeft->left->mipsExpression(mipsFile);
+            R2 = this->condExpLeft->right->mipsExpression(mipsFile);
+            this->mipsBOCAnd(mipsFile, aux->condExpLeft->op, R1.name, R2.name, labelElse);
         }
         aux = aux->nextBOC;
     }
@@ -303,7 +336,10 @@ void For::mipsFor(ofstream & mipsFile, int label, string funcName){
 
     //Inicializacao
     //Minimal Munch para a inicializacao
-    
+    for (std::list<Expression*>::iterator it = this->valuesInitialization.begin(); it != this->valuesInitialization.end(); ++it) {
+        (*it)->mipsExpression(mipsFile);
+    }
+
     //Condicao de parada
     mipsFile << labelCondition << ":\n";
     this->condExp->mipsBOCBoolCondicional(mipsFile, labelFor, labelExit);
@@ -317,6 +353,9 @@ void For::mipsFor(ofstream & mipsFile, int label, string funcName){
 
     //Ajuste de valores
     //Minimal Munch para o ajuste de valores
+    for (std::list<Expression*>::iterator it = this->valuesAdjustment.begin(); it != this->valuesAdjustment.end(); ++it) {
+        (*it)->mipsExpression(mipsFile);
+    }
 
     mipsFile << "j " << labelCondition << "\n";
 
@@ -329,7 +368,7 @@ void For::mipsFor(ofstream & mipsFile, int label, string funcName){
 void Printf::mipsPrintf(ofstream & mipsFile, int label, string funcName){
     string label = "Printf" + label + funcName;
     Variable *var;
-
+    Register reg;
     StringsLabel *ss = new StringsLabel();
     ss->label = label;
     ss->message = this->message;
@@ -339,25 +378,34 @@ void Printf::mipsPrintf(ofstream & mipsFile, int label, string funcName){
     mipsFile << "syscall\n";
 
     for (std::list<ASTObject*>::iterator it = this->paramsList.begin(); it != this->paramsList.end(); ++it) {
-        // Minimal Munch; Retorna uma Variable
-         
-        if(var->var_type == "int") {
+        //Minimal Munch
+        if((*it)->className == "EXPRESSION") {
+            Expression *ex = static_cast<Expression*>((*it)->statementClass);
+            reg = ex->mipsExpression(mipsFile);
+        }
+        else if((*it)->className == "CALLFUNCTION") {
+            CallFunction *c = static_cast<CallFunction*>((*it)->statementClass);
+            c->mipsCallFunction(mipsFile, func_name);
+            reg.name = "$v0"; reg.type = c->callfunc_type;
+        }
+
+        if(reg.type == "INT") {
             mipsFile << "li $v0, 1\n";
-            mipsFile << "la $a0, " << var->name <<"\n"; 
+            mipsFile << "la $a0, " << reg.name <<"\n"; 
             mipsFile << "syscall\n";
-        } else if(var->var_type == "float") {
+        } else if(reg.type == "FLOAT") {
             mipsFile << "li $v0, 2\n";
-            mipsFile << "la $f2, " << var->name <<"\n";             
+            mipsFile << "la $f2, " << reg.name <<"\n";             
             mipsFile << "syscall\n";
-            mipsFile << "move " << var->name << ", $f0" <<"\n"; 
-        } else if(var->var_type == "double") {
+            mipsFile << "move " << reg.name << ", $f0" <<"\n"; 
+        } else if(reg.type == "DOUBLE") {
             mipsFile << "li $v0, 3\n";
-            mipsFile << "la $f2, " << var->name <<"\n";     
+            mipsFile << "la $f2, " << reg.name <<"\n";     
             mipsFile << "syscall\n";
-            mipsFile << "move " << var->name << ", $f0" <<"\n"; 
-        } else if(var->var_type == "char") {
+            mipsFile << "move " << reg.name << ", $f0" <<"\n"; 
+        } else if(reg.type == "CHAR") {
             mipsFile << "li $v0, 4\n";
-            mipsFile << "la $a0, " << var->name << "\n";
+            mipsFile << "la $a0, " << reg.name << "\n";
             mipsFile << "syscall\n";
         }
     }
@@ -368,7 +416,7 @@ void Printf::mipsPrintf(ofstream & mipsFile, int label, string funcName){
 */
 void Scanf::mipsScanf(ofstream & mipsFile, int label, string funcName){
     string label = "Scanf" + label + funcName;
-    Variable *var;
+    Register reg;
     if(this->message != ""){
         StringsLabel *ss = new StringsLabel();
         ss->label = label;
@@ -380,24 +428,25 @@ void Scanf::mipsScanf(ofstream & mipsFile, int label, string funcName){
     }
 
     for (std::list<Expression*>::iterator it = this->variables.begin(); it != this->variables.end(); ++it) {
-        // Minimal Munch; Retorna um Variable
-        if(var->var_type == "int") {
+        //Minimal Munch
+        reg = (*it)->mipsExpression(mipsFile);
+        if(reg.type == "INT") {
             mipsFile << "li $v0, 5\n";
             mipsFile << "syscall\n";
-            mipsFile << "move " << var->name << ", $v0" <<"\n"; 
-        } else if(var->var_type == "float") {
+            mipsFile << "move " << reg.name << ", $v0" <<"\n"; 
+        } else if(reg.type == "FLOAT") {
             mipsFile << "li $v0, 6\n";
             mipsFile << "syscall\n";
-            mipsFile << "move " << var->name << ", $f0" <<"\n"; 
-        } else if(var->var_type == "double") {
+            mipsFile << "move " << reg.name << ", $f0" <<"\n"; 
+        } else if(reg.type == "DOUBLE") {
             mipsFile << "li $v0, 7\n";
             mipsFile << "syscall\n";
-            mipsFile << "move " << var->name << ", $f0" <<"\n"; 
-        } else if(var->var_type == "char") {
-            mipsFile << "li $a0, " << var->name << "\n";
-            mipsFile << "li $a1, " << var->dimension_size[0] << "\n";
-            mipsFile << "li $v0, 8\n";
-            mipsFile << "syscall\n";
+            mipsFile << "move " << reg.name << ", $f0" <<"\n"; 
+        } else if(reg.type == "char") {
+            // mipsFile << "li $a0, " << reg.name << "\n";
+            // mipsFile << "li $a1, " << var->dimension_size[0] << "\n";
+            // mipsFile << "li $v0, 8\n";
+            // mipsFile << "syscall\n";
         }
     }
 }
@@ -406,11 +455,10 @@ void Scanf::mipsScanf(ofstream & mipsFile, int label, string funcName){
 *       MIPS PARA O EXIT
 */
 void Exit::mipsExit(ofstream & mipsFile){
-    string reg;
+    Register reg;
     //Chamar o minimal munch para a expressao
-    //Colocar resultado da expressao em algum registrador
-    
-    mipsFile << "move $v0, " << reg << "\n";
+    reg = this->exp->mipsExpression(mipsFile);
+    mipsFile << "move $v0, " << reg.name << "\n";
     mipsFile << "syscall\n";
 }
 
@@ -418,11 +466,10 @@ void Exit::mipsExit(ofstream & mipsFile){
 *       MIPS PARA O RETURN
 */
 void Return::mipsReturn(ofstream & mipsFile){
-    string reg;
+    Register reg;
     //Chamar o minimal munch para a expressao
-    //Colocar resultado da expressao em $vo para o retorno
-
-    mipsFile << "move $v0, " << reg << "\n";
+    reg = this->exp->mipsExpression(mipsFile);
+    mipsFile << "move $v0, " << reg.name << "\n";
     mipsFile << "jr $ra\n";
 }
 
@@ -856,7 +903,6 @@ Register mipsMove(ofstream & mipsFile, Expression *ex, Register reg1, Register r
     return r;
 }
 
-
 Register Expression::mipsMinimalMunch(ofstream & mipsFile, Expression *ex){
     Register reg1, reg2, reg;
     reg.name = ""; reg.type = "";
@@ -887,12 +933,28 @@ Register Expression::mipsMinimalMunch(ofstream & mipsFile, Expression *ex){
     return reg;
 }
 
-vector<string> Expression::mipsExpression(ofstream & mipsFile){
-    Variable *reg1, *reg2;
+Register Expression::mipsExpression(ofstream & mipsFile){
+    Register reg1, reg2, reg;
     //Esquerda
-    this->mipsMinimalMunch(mipsFile, this->left);
+    reg1 = this->mipsMinimalMunch(mipsFile, this->left);
 
     //Direita
-    this->mipsMinimalMunch(mipsFile, this->right);
+    reg2 = this->mipsMinimalMunch(mipsFile, this->right);
 
+    if(reg1.tree == "" && reg2.tree == "") {
+        reg = mipsADDIConstant(mipsFile, this->term);
+    } 
+    else if(reg1.tree == "CONSTANT" && reg2.tree == "CONSTANT") {
+        reg = mipsADDIOperations(mipsFile, this->op, reg1, reg2);
+    }
+    else if((reg1.tree == "CONSTANT" || reg1.tree == "OPERATION") && reg2.tree == "") { //Para vetores
+        reg = mipsLoad(mipsFile, this->term, reg1);
+    }
+    else if(reg1.name == "LOAD" && reg2.name != "") {
+        reg = mipsStore(mipsFile, this->term, reg1, reg2);
+    }
+    else if(reg1.name == "LOAD" && reg2.name == "LOAD") {
+        reg = mipsMove(mipsFile, this, reg1, reg2);
+    }
+    return reg;
 }
