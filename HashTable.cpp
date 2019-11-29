@@ -4,59 +4,42 @@
   Construtor da classe.
 */
 HashTable::HashTable(int size){
-  this->hashtable = new List*[size];
-  for(int i = 0; i < size; i++){
-    this->hashtable[i] = new List();
-  }
+  this->hashtable.resize(size);
   this->size = size;
 }
 
 /*
   insere um elemento na hashTable.
 */
-bool HashTable::insertItem(Item item){
-  List *l;
-  int hashKey = this->hashFunction(item.var_name);
+bool HashTable::insertItem(Item *item){
+  HashItem *l;
+  int hashKey = this->hashFunction(item->var_name);
   l = this->hashtable[hashKey];
-  l->addFinal(new Item(item.var_name, item.var_category, item.var_level, item.var_type, item.var_displacement, item.var_reference));
-  return false;
+  l->itemList.push_back(item);
+  return true;
 }
 
-/*
-  Pesquisa um item na hashTable. Retorna o item.
-*/
-Item *HashTable::searchItem(string item){
-  List *l;
-  int hashKey = this->hashFunction(item);
-  l = this->hashtable[hashKey];
-  Item *it = l->search(Item(item));
-  return it;
-}
-
-/*
-  Pesquisa um item na hashTable. Retorna um booleano.
-*/
-bool HashTable::searchItem2(string item){
-  List *l;
-  int hashKey = this->hashFunction(item);
-  l = this->hashtable[hashKey];
-  Item *it = l->search(Item(item));
-
-  if(it != NULL){
-    return true;
+int HashTable::search(HashItem hash_item, string itemName) {
+  for(int i = 0; i < hash_item.itemList.size(); i++){
+    if(hash_item.itemList[i]->var_name == itemName) {
+      return i;
+    }
   }
-
-  return false;
+  return -1;
 }
 
 /*
   Pesquisa um item na hashTable. Retorna o item.
 */
-Item *HashTable::searchItem3(int hashIndex, int wordIndex){
-  List *l;
-  l = this->hashtable[hashIndex];
-  Item *it = l->searchByIndex(wordIndex);
-  return it;
+Item *HashTable::searchItem(string itemName){
+  HashItem *l;
+  Item *it;
+  int i;
+  int hashKey = this->hashFunction(itemName);
+  l = this->hashtable[hashKey];
+  i = search(*l, itemName);
+  if(i != -1)return l->itemList[i];
+  else return NULL;
 }
 
 /*
@@ -64,51 +47,20 @@ Item *HashTable::searchItem3(int hashIndex, int wordIndex){
 */
 void HashTable::show(string outFile){
   int i =0;
+  string result;
   ofstream hFile;
   hFile.open (outFile);
-
-  while(i < this->size){
-    List *l = this->hashtable[i];
-    if(l->getSize() > 0) {
-      string ln = "Lista " + std::to_string(i);
-      l->showItens(hFile, ln);
+  for(int i = 0; i < this->hashtable.size(); i++){
+    HashItem *h = this->hashtable[i];
+    for(int j = 0; j < h->itemList.size(); j++){
+      result = h->itemList[j]->toString();
+      hFile << result;
     }
-    i++;
   }
 
   hFile.close();
 }
 
-/*
-  Escreve os itens da lista.
-*/
-void HashTable::show2(string outFile){
-  int i =0;
-  ofstream hFile;
-  hFile.open (outFile);
-
-  while(i < this->size){
-    List *l = this->hashtable[i];
-    if(l->getSize() > 0) {
-      string ln = std::to_string(i);
-      l->showItens3(hFile, ln);
-    }
-    i++;
-  }
-
-  hFile.close();
-}
-
-/*
-  Deleta um item da hashTable.
-*/
-Item *HashTable::deleteItem(Item item){
-  List *l;
-  int hashKey = this->hashFunction(item.var_name);
-  l = this->hashtable[hashKey];
-  Item *it = l->remove(Item(item.var_name));
-  return it;
-}
 
 /*
   Função que calcula a posição que a string será inserida no vetor.
@@ -122,17 +74,3 @@ int HashTable::hashFunction(string item){
   return h;
 }
 
-/*
-  Apaga a hashTable.
-*/
-void HashTable::removeHashTable(){
-  int i =0;
-  while(i < this->size){
-    List *l = this->hashtable[i];
-    l->removeList();
-    delete l;
-    this->hashtable[i] = NULL;
-    i++;
-  }
-  delete[] this->hashtable;
-}

@@ -7,28 +7,29 @@
 #include <list>
 #include <fstream>
 
-#include "List.h"
-
+#include "Item.h"
 using namespace std;
 
+
+class HashItem {
+  public:
+    vector<Item*> itemList;
+};
 
 class HashTable {
 
   public:
     int size;
-    List **hashtable;
+    vector<HashItem*> hashtable;
+    
     HashTable(int size);
-    bool insertItem(Item item);
-    Item *deleteItem(Item item);
-    Item *searchItem(string item);
-    bool searchItem2(string item);
-    Item *searchItem3(int hashIndex, int wordIndex);
+    bool insertItem(Item *item);
+    Item *searchItem(string itemName);
     void show(string outFile);
-    void show2(string outFile);
-    void removeHashTable();
     
   private:
     int hashFunction(string item);
+    int search(HashItem hash_item, string itemName);
 
 };
 

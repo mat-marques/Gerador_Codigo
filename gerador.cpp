@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 #include "Arquivo.h"
+#include "AST.h"
 
 using namespace std;
 

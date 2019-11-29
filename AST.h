@@ -10,8 +10,10 @@
 
 using namespace std;
 
-class Expressions;
+class ASTObject;
+class Expression;
 class CondicionalExpression;
+class BoolOperatorCondicional;
 class DoWhile;
 class While;
 class IF;
@@ -20,18 +22,22 @@ class Scanf;
 class Printf;
 class Exit;
 class Return;
-class SimpleExpression;
-class Expressions;
 class Statement;
+class FunctionParam;
+class Number;
+class Constant;
+class CallFunction;
 class Function;
+class Variable;
+class Assignment;
 class Program;
 class StringsLabel;
 class DataLabel;
 class MipsInstruction;
 
-list<MipsInstruction*> instructionList;
-list<StringsLabel*> stringsLabelList;
-list<DataLabel*> dataLabelList;
+extern list<MipsInstruction*> instructionList;
+extern list<StringsLabel*> stringsLabelList;
+extern list<DataLabel*> dataLabelList;
 
 class Program {
     public:
