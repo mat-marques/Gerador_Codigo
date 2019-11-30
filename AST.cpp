@@ -9,14 +9,31 @@ list<MipsInstruction*> instructionList;
 list<StringsLabel*> stringsLabelList;
 list<DataLabel*> dataLabelList;
 
+Register mipsStore(ofstream & mipsFile, Register reg1, Register reg2);
+Register mipsMove(ofstream & mipsFile, Register reg1, Register reg2);
+
 /*
-*       MIPS PARA A Function
+*       MIPS PARA A Program
 */
-void Function::mipsFunction(ofstream & mipsFile){
-    mipsFile << this->name << ":\n";
-    for (std::list<Statement*>::iterator it = this->statementList.begin(); it != this->statementList.end(); ++it) {
-        func_name = this->name;
-        (*it)->mipsStatement(mipsFile, 0, this->name);
+void Program::mipsProgram(ofstream & mipsFile){
+	int i = 0;
+    for (std::list<Function*>::iterator it = this->functionsList.begin(); it != this->functionsList.end(); ++it) {
+        mipsFile << (*it)->name << ":\n";
+
+        mipsFile << "addi $sp, $sp, -" << ((*it)->paramsList.size() * 4) << "\n";
+		for(std::list<FunctionParam*>::iterator it2 = (*it)->paramsList.begin(); it2 != (*it)->paramsList.end(); ++it2) {
+			mipsFile << "sw  $t" << i << ", "<< (i * 4) << "($sp)\n";
+			i++;
+		}
+
+    	(*it)->mipsFunction(mipsFile);
+
+        i = 0;
+		for(std::list<FunctionParam*>::iterator it2 = (*it)->paramsList.begin(); it2 != (*it)->paramsList.end(); ++it2) {
+			mipsFile << "lw  $t" << i << ", "<< (i * 4) << "($sp)\n";
+			i++;
+		}
+        mipsFile << "addi $sp, $sp, " << ((*it)->paramsList.size() * 4) << "\n";
     }
 
     //Mips para a declaração de string para o scanf e printf
@@ -30,12 +47,20 @@ void Function::mipsFunction(ofstream & mipsFile){
     }
 }
 
+
+/*
+*       MIPS PARA A Function
+*/
+void Function::mipsFunction(ofstream & mipsFile){
+   this->statementList->mipsStatement(mipsFile, 0, this->name);
+}
+
 /*
 *       MIPS PARA O Statement
 */
 void Statement::mipsStatement(ofstream & mipsFile, int label, string funcName){
     int ifLabel = label,forLabel = label, whileLabel = label, dowhileLabel = label, assignmentLabel = label,
-    callfunctionLabel = label, printfLabel = label, scanfLabel = label;
+    printfLabel = label, scanfLabel = label;
     
     for (std::list<ASTObject*>::iterator it = this->statement.begin(); it != this->statement.end(); ++it) {
         if((*it)->className == "IF"){
@@ -80,15 +105,49 @@ void Statement::mipsStatement(ofstream & mipsFile, int label, string funcName){
             CallFunction *callfunctionObject = static_cast<CallFunction*>( (*it)->statementClass );
             callfunctionObject->mipsCallFunction(mipsFile, funcName);
         }
-        // else if((*it)->className == "ASSIGNMENT"){
-        //     Assignment *assignmentObject = static_cast<Assignment*>( (*it)->statementClass );
-        //     assignmentObject->mipsAssignment(mipsFile, assignmentLabel, funcName);
-        // }
-        else {
-            cout << "Estrutura não encontrada" << endl;
-        }
+         else if((*it)->className == "ASSIGNMENT"){
+             Assignment *assignmentObject = static_cast<Assignment*>( (*it)->statementClass );
+             assignmentObject->mipsAssignment(mipsFile, assignmentLabel, funcName);
+         }
+//        else {
+//            cout << "Estrutura não encontrada: " << (*it)->className << endl;
+//        }
 
     }
+}
+
+/*
+*       MIPS PARA um VETOR
+*/
+Register Variable::mipsVariableVector(ofstream & mipsFile, string funcName){
+	Register reg;
+	vector<Register> aux_reg;
+	MipsInstruction *mips_inst;
+
+	for (std::vector<Expression*>::iterator it = this->dimension_exp.begin(); it != this->dimension_exp.end(); ++it) {
+		Register r = (*it)->mipsExpression(mipsFile);
+		aux_reg.push_back(r);
+	}
+
+	if(this->dimension_size.size() == 1){
+	    mipsFile << "addi aux, $zero, 4\n";
+	    mipsFile << "mult " << aux_reg[0].name << ", aux\n";
+	    mipsFile << "mflo posic\n";
+	    mipsFile << "add vetor_" << this->name << ", " << this->name << ", posic\n";
+
+        mips_inst = new MipsInstruction(currentLabel, "addi", "aux", "$zero", "4");
+        instructionList.push_back(mips_inst);
+        mips_inst = new MipsInstruction(currentLabel, "mult", aux_reg[0].name, "aux", "");
+        instructionList.push_back(mips_inst);
+        mips_inst = new MipsInstruction(currentLabel, "mflo", "posic", "", "");
+        instructionList.push_back(mips_inst);
+        mips_inst = new MipsInstruction(currentLabel, "add", "vetor_"+this->name, this->name , "posic");
+        instructionList.push_back(mips_inst);
+
+        reg.name = "R" + to_string(indexLabel); reg.type = "INT"; reg.vetor = "vetor_"+this->name;  reg.tree = "VECTOR";
+	}
+
+	return reg;
 }
 
 /*
@@ -150,7 +209,7 @@ void CallFunction::mipsCallFunction(ofstream & mipsFile, string funcName){
 *       MIPS PARA O Assignment
 */
 void Assignment::mipsAssignment(ofstream & mipsFile, int label, string funcName){
-    Register reg;
+    Register reg, reg2;
     MipsInstruction *mips_inst;
     //Minimal Munch; Retorna o registrador em reg
     if(this->assignObject->className == "EXPRESSION") {
@@ -163,9 +222,20 @@ void Assignment::mipsAssignment(ofstream & mipsFile, int label, string funcName)
         reg.name = "$v0"; reg.type = c->callfunc_type;
     }
 
-    mipsFile << "move " << this->variable.name << ", " << reg.name << "\n";
-    mips_inst = new MipsInstruction(currentLabel, "move", this->variable.name, reg.name, "");
-    instructionList.push_back(mips_inst);
+    if(this->variable->dimension_size.size() == 1) {
+    	if(reg.tree == "VECTOR") {
+    		reg2 = this->variable->mipsVariableVector(mipsFile, funcName);
+    		reg = mipsMove(mipsFile, reg2, reg);
+    	} else {
+    		reg2 = this->variable->mipsVariableVector(mipsFile, funcName);
+    		reg = mipsStore(mipsFile, reg2, reg);
+    	}
+    }
+    else {
+		mipsFile << "move " << this->variable->name << ", " << reg.name << "\n";
+		mips_inst = new MipsInstruction(currentLabel, "move", this->variable->name, reg.name, "");
+		instructionList.push_back(mips_inst);
+    }
 }
 
 /*
@@ -637,146 +707,52 @@ Register mipsADDIConstant(ofstream & mipsFile, ASTObject *ast_obj){
     if(ast_obj->className == "NUMBER") {
         Number *aux = static_cast<Number*>(ast_obj->statementClass);
         if(aux->number_type == "INT"){
-            mipsFile << "addi R" << indexLabel << ", $zero, " << aux->value << "\n";
+            mipsFile << "addi R" << to_string(indexLabel) << ", $zero, " << aux->value << "\n";
             mips_inst = new MipsInstruction(currentLabel, "addi", "R" + to_string(indexLabel), "$zero", aux->value);
             instructionList.push_back(mips_inst);
 
-            r.name = "R" + indexLabel;
+            r.name = "R" + to_string(indexLabel);
             r.type = "INT"; r.tree = "CONSTANT";
         }
-        else if(aux->number_type == "FLOAT"){
-            DataLabel *dt = new DataLabel();
-            dt->value = aux->value;
-            dt->data_type = "float";
-            dt->label = "float" + floatLabel;
-            dataLabelList.push_back(dt);
-
-            mipsFile << "l.s F" << indexLabel << ", " << dt->label << "\n";
-            mips_inst = new MipsInstruction(currentLabel, "l.s", "F" + to_string(indexLabel), dt->label, "");
-            instructionList.push_back(mips_inst);
-
-            r.name = "F" + indexLabel;
-            r.type = "FLOAT"; r.tree = "CONSTANT";
-            floatLabel++;
-        }
-        else if(aux->number_type == "DOUBLE"){
-            DataLabel *dt = new DataLabel();
-            dt->value = aux->value;
-            dt->data_type = "double";
-            dt->label = "double" + doubleLabel;
-            dataLabelList.push_back(dt);
-
-            mipsFile << "l.d F" << indexLabel << ", " << dt->label << "\n";
-            mips_inst = new MipsInstruction(currentLabel, "l.d", "F" + to_string(indexLabel), dt->label, "");
-            instructionList.push_back(mips_inst);
-
-            r.name = "F" + indexLabel;
-            r.type = "DOUBLE"; r.tree = "CONSTANT";
-            doubleLabel++;
-        } 
     }
     else if(ast_obj->className == "VARIABLE") {
         Variable *aux = static_cast<Variable*>(ast_obj->statementClass);
-        if(aux->dimension_size.size() > 0) return r;
+        if(aux->dimension_size.size() > 0){
+        	r = aux->mipsVariableVector(mipsFile, func_name);
+        	return r;
+        };
         if(aux->var_type == "INT"){
-            mipsFile << "addi R" << indexLabel << ", $zero, " << aux->name << "\n";
+            mipsFile << "addi R" << to_string(indexLabel) << ", $zero, " << aux->name << "\n";
             mips_inst = new MipsInstruction(currentLabel, "addi", "R" + to_string(indexLabel), "$zero", aux->name);
             instructionList.push_back(mips_inst);
 
-            r.name = "R" + indexLabel;
+            r.name = "R" + to_string(indexLabel);
             r.type = "INT"; r.tree = "CONSTANT";
-        }
-        else if(aux->var_type == "FLOAT"){
-            mipsFile << "mov.s F" << indexLabel << ", " << aux->name << "\n";
-            mips_inst = new MipsInstruction(currentLabel, "l.s", "F" + to_string(indexLabel), aux->name, "");
-            instructionList.push_back(mips_inst);
-
-            r.name = "F" + indexLabel;
-            r.type = "FLOAT"; r.tree = "CONSTANT";
-            floatLabel++;
-        }
-        else if(aux->var_type == "DOUBLE"){
-            mipsFile << "mov.d F" << indexLabel << ", " << aux->name << "\n";
-            mips_inst = new MipsInstruction(currentLabel, "l.d", "F" + to_string(indexLabel), aux->name, "");
-            instructionList.push_back(mips_inst);
-
-
-            r.name = "F" + indexLabel;
-            r.type = "DOUBLE"; r.tree = "CONSTANT";
-            doubleLabel++;
         }
     }
     else if(ast_obj->className == "CONSTANT") {
         Constant *aux = static_cast<Constant*>(ast_obj->statementClass);
         if(aux->const_type == "INT"){
-            mipsFile << "addi R" << indexLabel << ", $zero, " << aux->value << "\n";
+            mipsFile << "addi R" << to_string(indexLabel) << ", $zero, " << aux->value << "\n";
             mips_inst = new MipsInstruction(currentLabel, "addi", "R" + to_string(indexLabel), "$zero", aux->value);
             instructionList.push_back(mips_inst);
 
-            r.name = "R" + indexLabel;
+            r.name = "R" + to_string(indexLabel);
             r.type = "INT"; r.tree = "CONSTANT";
         }
-        else if(aux->const_type == "FLOAT"){
-            DataLabel *dt = new DataLabel();
-            dt->value = aux->value;
-            dt->data_type = "float";
-            dt->label = "float" + floatLabel;
-            dataLabelList.push_back(dt);
-
-            mipsFile << "l.s F" << indexLabel << ", " << dt->label << "\n";
-            mips_inst = new MipsInstruction(currentLabel, "l.s", "F" + to_string(indexLabel), dt->label, "");
-            instructionList.push_back(mips_inst);
-
-            r.name = "F" + indexLabel;
-            r.type = "FLOAT"; r.tree = "CONSTANT";
-            floatLabel++;
-        }
-        else if(aux->const_type == "DOUBLE"){
-            DataLabel *dt = new DataLabel();
-            dt->value = aux->value;
-            dt->data_type = "double";
-            dt->label = "double" + doubleLabel;
-            dataLabelList.push_back(dt);
-
-            mipsFile << "l.d F" << indexLabel << ", " << dt->label << "\n";
-            mips_inst = new MipsInstruction(currentLabel, "l.d", "F" + to_string(indexLabel), dt->label, "");
-            instructionList.push_back(mips_inst);
-
-            r.name = "F" + indexLabel;
-            r.type = "DOUBLE"; r.tree = "CONSTANT";
-            doubleLabel++;
-        } 
     }
     else if(ast_obj->className == "CALLFUNCTION") {
         CallFunction *aux = static_cast<CallFunction*>(ast_obj->statementClass);
         
-        if(aux->dimension_size.size() > 0) return r;
-        
         aux->mipsCallFunction(mipsFile, func_name);
         if(aux->callfunc_type == "INT") {
-            mipsFile << "move R" << indexLabel << ", $v0\n";
+            mipsFile << "move R" << to_string(indexLabel) << ", $v0\n";
             mips_inst = new MipsInstruction(currentLabel, "move", "R" + to_string(indexLabel), "$v0", "");
             instructionList.push_back(mips_inst);
 
-            r.name = "R" + indexLabel;
+            r.name = "R" + to_string(indexLabel);
             r.type = "INT"; r.tree = "CONSTANT";
         }
-        else if(aux->callfunc_type == "FLOAT") {
-            mipsFile << "mov.s F" << indexLabel << ", $v0\n";
-            mips_inst = new MipsInstruction(currentLabel, "mov.s", "R" + to_string(indexLabel), "$v0", "");
-            instructionList.push_back(mips_inst);
-
-            r.name = "F" + indexLabel;
-            r.type = "FLOAT"; r.tree = "CONSTANT";
-        }
-        else if(aux->callfunc_type == "DOUBLE") {
-            mipsFile << "mov.d F" << indexLabel << ", $v0\n";
-            mips_inst = new MipsInstruction(currentLabel, "mov.d", "F" + to_string(indexLabel), "$v0", "");
-            instructionList.push_back(mips_inst);
-
-            r.name = "F" + indexLabel;
-            r.type = "DOUBLE"; r.tree = "CONSTANT";
-        } 
     }
 
     indexLabel++;
@@ -789,21 +765,21 @@ Register mipsADDIOperations(ofstream & mipsFile, string op, Register reg1, Regis
     r.name = ""; r.type = "";
     if(reg1.type == "INT" && reg2.type == "INT"){
         if(op == "+") {
-            mipsFile << "add R" << indexLabel << ", " << reg1.name << ", " << reg2.name << "\n";
-            r.name = "R" + indexLabel; r.type = "INT"; r.tree = "OPERATION";
+            mipsFile << "add R" << to_string(indexLabel) << ", " << reg1.name << ", " << reg2.name << "\n";
+            r.name = "R" + to_string(indexLabel); r.type = "INT"; r.tree = "OPERATION";
 
             mips_inst = new MipsInstruction(currentLabel, "add", "R" + to_string(indexLabel), reg1.name, reg2.name);
             instructionList.push_back(mips_inst);
         } else if(op == "-") {
-            mipsFile << "sub R" << indexLabel << ", " << reg1.name << ", " << reg2.name << "\n";
-            r.name = "R" + indexLabel; r.type = "INT"; r.tree = "OPERATION";
+            mipsFile << "sub R" << to_string(indexLabel) << ", " << reg1.name << ", " << reg2.name << "\n";
+            r.name = "R" + to_string(indexLabel); r.type = "INT"; r.tree = "OPERATION";
 
             mips_inst = new MipsInstruction(currentLabel, "sub", "R" + to_string(indexLabel), reg1.name, reg2.name);
             instructionList.push_back(mips_inst);        
         } else if(op == "*") {
             mipsFile << "mult " << reg1.name << ", " << reg2.name << "\n";
-            mipsFile << "mflo R" << indexLabel << "\n";
-            r.name = "R" + indexLabel; r.type = "INT"; r.tree = "OPERATION";
+            mipsFile << "mflo R" << to_string(indexLabel) << "\n";
+            r.name = "R" + to_string(indexLabel); r.type = "INT"; r.tree = "OPERATION";
 
             mips_inst = new MipsInstruction(currentLabel, "mult", reg1.name, reg2.name, "");
             instructionList.push_back(mips_inst);
@@ -811,8 +787,8 @@ Register mipsADDIOperations(ofstream & mipsFile, string op, Register reg1, Regis
             instructionList.push_back(mips_inst);
         } else if(op == "/") {
             mipsFile << "div " << reg1.name << ", " << reg2.name << "\n";
-            mipsFile << "mfhi R" << indexLabel << "\n";
-            r.name = "R" + indexLabel; r.type = "INT"; r.tree = "OPERATION";
+            mipsFile << "mfhi R" << to_string(indexLabel) << "\n";
+            r.name = "R" + to_string(indexLabel); r.type = "INT"; r.tree = "OPERATION";
 
             mips_inst = new MipsInstruction(currentLabel, "div", reg1.name, reg2.name, "");
             instructionList.push_back(mips_inst);
@@ -820,407 +796,38 @@ Register mipsADDIOperations(ofstream & mipsFile, string op, Register reg1, Regis
             instructionList.push_back(mips_inst);
         }
     } 
-    else if(reg1.type == "FLOAT" && reg2.type == "INT") {
-        string auxr = reg2.name + to_string(indexLabel);
-        mipsFile << "mtc1 " << reg2.name << ", " << auxr <<"\n";
-        mipsFile << "cvt.s.w " << auxr << ", " << auxr << "\n";
 
-        mips_inst = new MipsInstruction(currentLabel, "mtc1", reg2.name, auxr, "");
-        instructionList.push_back(mips_inst);
-        mips_inst = new MipsInstruction(currentLabel, "cvt.s.w", auxr, auxr, "");
-        instructionList.push_back(mips_inst);
+    indexLabel++;
+    return r;
+}
 
-        if(op == "+") {
-            mipsFile << "add.s F" << indexLabel << ", " << reg1.name << ", " << auxr << "\n";
-            r.name = "F" + indexLabel; r.type = "FLOAT"; r.tree = "OPERATION";
+Register mipsLoad(ofstream & mipsFile,Register reg1) {
+    Register r;
+    MipsInstruction *mips_inst;
+    r.name = ""; r.type = "";
+    if(reg1.type == "INT") {
+		mipsFile << "lw R" << to_string(indexLabel) << ", (" << reg1.vetor << ")\n";
+		r.name = "R" + to_string(indexLabel); r.type = "INT"; r.tree = "LOAD";
 
-            mips_inst = new MipsInstruction(currentLabel, "add.s", "F" + to_string(indexLabel), reg1.name, auxr);
-            instructionList.push_back(mips_inst);
-        } else if(op == "-") {
-            mipsFile << "sub.s F" << indexLabel << ", " << reg1.name << ", " << auxr << "\n";
-            r.name = "F" + indexLabel; r.type = "FLOAT"; r.tree = "OPERATION";
-
-            mips_inst = new MipsInstruction(currentLabel, "sub.s", "F" + to_string(indexLabel), reg1.name, auxr);
-            instructionList.push_back(mips_inst);
-        } else if(op == "*") {
-            mipsFile << "mul.s F" << indexLabel << ", " << reg1.name << ", " << auxr << "\n";
-            r.name = "F" + indexLabel; r.type = "FLOAT"; r.tree = "OPERATION";
-
-            mips_inst = new MipsInstruction(currentLabel, "mul.s", "F" + to_string(indexLabel), reg1.name, auxr);
-            instructionList.push_back(mips_inst);
-        } else if(op == "/") {
-            mipsFile << "div.s F" << indexLabel << ", " << reg1.name << ", " << auxr << "\n";
-            r.name = "F" + indexLabel; r.type = "FLOAT"; r.tree = "OPERATION";
-
-            mips_inst = new MipsInstruction(currentLabel, "div.s", "F" + to_string(indexLabel), reg1.name, auxr);
-            instructionList.push_back(mips_inst);
-        }
-    } 
-    else if(reg1.type == "INT" && reg2.type == "FLOAT") {
-        string auxr = reg1.name + to_string(indexLabel);
-        mipsFile << "mtc1 " << reg1.name << ", " << auxr <<"\n";
-        mipsFile << "cvt.s.w " << auxr << ", " << auxr << "\n";
-
-        mips_inst = new MipsInstruction(currentLabel, "mtc1", reg1.name, auxr, "");
-        instructionList.push_back(mips_inst);
-        mips_inst = new MipsInstruction(currentLabel, "cvt.s.w", auxr, auxr, "");
-        instructionList.push_back(mips_inst);
-
-        if(op == "+") {
-            mipsFile << "add.s F" << indexLabel << ", " << auxr << ", " << reg2.name << "\n";
-            r.name = "F" + indexLabel; r.type = "FLOAT"; r.tree = "OPERATION";
-
-            mips_inst = new MipsInstruction(currentLabel, "add.s", "F" + to_string(indexLabel), auxr, reg2.name);
-            instructionList.push_back(mips_inst);
-        } else if(op == "-") {
-            mipsFile << "sub.s F" << indexLabel << ", " << auxr << ", " << reg2.name << "\n";
-            r.name = "F" + indexLabel; r.type = "FLOAT"; r.tree = "OPERATION";
-
-            mips_inst = new MipsInstruction(currentLabel, "sub.s", "F" + to_string(indexLabel), auxr, reg2.name);
-            instructionList.push_back(mips_inst);
-        } else if(op == "*") {
-            mipsFile << "mul.s F" << indexLabel << ", " << auxr << ", " << reg2.name << "\n";
-            r.name = "F" + indexLabel; r.type = "FLOAT"; r.tree = "OPERATION";
-
-            mips_inst = new MipsInstruction(currentLabel, "mul.s", "F" + to_string(indexLabel), auxr, reg2.name);
-            instructionList.push_back(mips_inst);
-        } else if(op == "/") {
-            mipsFile << "div.s F" << indexLabel << ", " << auxr << ", " << reg2.name << "\n";
-            r.name = "F" + indexLabel; r.type = "FLOAT"; r.tree = "OPERATION";
-
-            mips_inst = new MipsInstruction(currentLabel, "div.s", "F" + to_string(indexLabel), auxr, reg2.name);
-            instructionList.push_back(mips_inst);
-        }
-    } 
-    else if(reg1.type == "FLOAT" && reg2.type == "FLOAT") {
-        if(op == "+") {
-            mipsFile << "add.s F" << indexLabel << ", " << reg1.name << ", " << reg2.name << "\n";
-            r.name = "F" + indexLabel; r.type = "FLOAT"; r.tree = "OPERATION";
-
-            mips_inst = new MipsInstruction(currentLabel, "add.s", "F" + to_string(indexLabel), reg1.name, reg2.name);
-            instructionList.push_back(mips_inst);
-        } else if(op == "-") {
-            mipsFile << "sub.s F" << indexLabel << ", " << reg1.name << ", " << reg2.name << "\n";
-            r.name = "F" + indexLabel; r.type = "FLOAT"; r.tree = "OPERATION";
-
-            mips_inst = new MipsInstruction(currentLabel, "sub.s", "F" + to_string(indexLabel), reg1.name, reg2.name);
-            instructionList.push_back(mips_inst);
-        } else if(op == "*") {
-            mipsFile << "mul.s F" << indexLabel << ", " << reg1.name << ", " << reg2.name << "\n";
-            r.name = "F" + indexLabel; r.type = "FLOAT"; r.tree = "OPERATION";
-
-            mips_inst = new MipsInstruction(currentLabel, "mul.s", "F" + to_string(indexLabel), reg1.name, reg2.name);
-            instructionList.push_back(mips_inst);
-        } else if(op == "/") {
-            mipsFile << "div.s F" << indexLabel << ", " << reg1.name << ", " << reg2.name << "\n";
-            r.name = "F" + indexLabel; r.type = "FLOAT"; r.tree = "OPERATION";
-    
-            mips_inst = new MipsInstruction(currentLabel, "div.s", "F" + to_string(indexLabel), reg1.name, reg2.name);
-            instructionList.push_back(mips_inst);
-        }
-    } 
-    else if(reg1.type == "DOUBLE" && reg2.type == "INT") {
-        string auxr = reg2.name + to_string(indexLabel);
-        mipsFile << "mtc1 " << reg2.name << ", " << auxr <<"\n";
-        mipsFile << "cvt.d.w " << auxr << ", " << auxr << "\n";
-
-        mips_inst = new MipsInstruction(currentLabel, "mtc1", reg2.name, auxr, "");
-        instructionList.push_back(mips_inst);
-        mips_inst = new MipsInstruction(currentLabel, "cvt.d.w", auxr, auxr, "");
-        instructionList.push_back(mips_inst);
-
-        if(op == "+") {
-            mipsFile << "add.d F" << indexLabel  << ", " << reg1.name << ", " << auxr << "\n";
-            r.name = "F" + indexLabel; r.type = "DOUBLE"; r.tree = "OPERATION";
-
-            mips_inst = new MipsInstruction(currentLabel, "add.d", "F" + to_string(indexLabel), reg1.name, auxr);
-            instructionList.push_back(mips_inst);            
-        } else if(op == "-") {
-            mipsFile << "sub.d F" << indexLabel  << ", " << reg1.name << ", " << auxr << "\n";
-            r.name = "F" + indexLabel; r.type = "DOUBLE"; r.tree = "OPERATION";
-
-            mips_inst = new MipsInstruction(currentLabel, "sub.d", "F" + to_string(indexLabel), reg1.name, auxr);
-            instructionList.push_back(mips_inst);            
-        } else if(op == "*") {
-            mipsFile << "mul.d F" << indexLabel  << ", " << reg1.name << ", " << auxr << "\n";
-            r.name = "F" + indexLabel; r.type = "DOUBLE"; r.tree = "OPERATION";
-
-            mips_inst = new MipsInstruction(currentLabel, "mul.d", "F" + to_string(indexLabel), reg1.name, auxr);
-            instructionList.push_back(mips_inst);            
-        } else if(op == "/") {
-            mipsFile << "div.d F" << indexLabel  << ", " << reg1.name << ", " << auxr << "\n";
-            r.name = "F" + indexLabel; r.type = "DOUBLE"; r.tree = "OPERATION";
-
-            mips_inst = new MipsInstruction(currentLabel, "div.d", "F" + to_string(indexLabel), reg1.name, auxr);
-            instructionList.push_back(mips_inst);
-        }
-    } 
-    else if(reg1.type == "INT" && reg2.type == "DOUBLE") {
-        string auxr = reg1.name + to_string(indexLabel);
-        mipsFile << "mtc1 " << reg1.name << ", " << auxr <<"\n";
-        mipsFile << "cvt.d.w " << auxr << ", " << auxr << "\n";
-        mips_inst = new MipsInstruction(currentLabel, "mtc1", reg1.name, auxr, "");
-        instructionList.push_back(mips_inst);
-        mips_inst = new MipsInstruction(currentLabel, "cvt.d.w", auxr, auxr, "");
-        instructionList.push_back(mips_inst);
-
-        if(op == "+") {
-            mipsFile << "add.d F" << indexLabel  << ", " << auxr << ", " << reg2.name << "\n";
-            r.name = "F" + indexLabel; r.type = "DOUBLE"; r.tree = "OPERATION";
-
-            mips_inst = new MipsInstruction(currentLabel, "add.d", "F" + to_string(indexLabel), auxr, reg2.name);
-            instructionList.push_back(mips_inst);
-        } else if(op == "-") {
-            mipsFile << "sub.d F" << indexLabel  << ", " << auxr << ", " << reg2.name << "\n";
-            r.name = "F" + indexLabel; r.type = "DOUBLE"; r.tree = "OPERATION";
-
-            mips_inst = new MipsInstruction(currentLabel, "sub.d", "F" + to_string(indexLabel), auxr, reg2.name);
-            instructionList.push_back(mips_inst);
-        } else if(op == "*") {
-            mipsFile << "mul.d F" << indexLabel  << ", " << auxr << ", " << reg2.name << "\n";
-            r.name = "F" + indexLabel; r.type = "DOUBLE"; r.tree = "OPERATION";
-
-            mips_inst = new MipsInstruction(currentLabel, "mul.d", "F" + to_string(indexLabel), auxr, reg2.name);
-            instructionList.push_back(mips_inst);
-        } else if(op == "/") {
-            mipsFile << "div.d F" << indexLabel  << ", " << auxr << ", " << reg2.name << "\n";
-            r.name = "F" + indexLabel; r.type = "DOUBLE"; r.tree = "OPERATION";
-
-            mips_inst = new MipsInstruction(currentLabel, "div.d", "F" + to_string(indexLabel), auxr, reg2.name);
-            instructionList.push_back(mips_inst);
-        }
-    } 
-    else if(reg1.type == "DOUBLE" || reg2.type == "DOUBLE") {
-        if(op == "+") {
-            mipsFile << "add.d F" << indexLabel  << ", " << reg1.name << ", " << reg2.name << "\n";
-            r.name = "F" + indexLabel; r.type = "DOUBLE"; r.tree = "OPERATION";
-
-            mips_inst = new MipsInstruction(currentLabel, "add.d", "F" + to_string(indexLabel), reg1.name, reg2.name);
-            instructionList.push_back(mips_inst);
-        } else if(op == "-") {
-            mipsFile << "sub.d F" << indexLabel  << ", " << reg1.name << ", " << reg2.name << "\n";
-            r.name = "F" + indexLabel; r.type = "DOUBLE"; r.tree = "OPERATION";
-
-            mips_inst = new MipsInstruction(currentLabel, "sub.d", "F" + to_string(indexLabel), reg1.name, reg2.name);
-            instructionList.push_back(mips_inst);
-        } else if(op == "*") {
-            mipsFile << "mul.d F" << indexLabel  << ", " << reg1.name << ", " << reg2.name << "\n";
-            r.name = "F" + indexLabel; r.type = "DOUBLE"; r.tree = "OPERATION";
-
-            mips_inst = new MipsInstruction(currentLabel, "mul.d", "F" + to_string(indexLabel), reg1.name, reg2.name);
-            instructionList.push_back(mips_inst);
-        } else if(op == "/") {
-            mipsFile << "div.d F" << indexLabel  << ", " << reg1.name << ", " << reg2.name << "\n";
-            r.name = "F" + indexLabel; r.type = "DOUBLE"; r.tree = "OPERATION";
-
-            mips_inst = new MipsInstruction(currentLabel, "div.d", "F" + to_string(indexLabel), reg1.name, reg2.name);
-            instructionList.push_back(mips_inst);
-        }
+		mips_inst = new MipsInstruction(currentLabel, "lw", "R" + to_string(indexLabel), "(" + reg1.vetor + ")", "");
+		instructionList.push_back(mips_inst);
     }
 
     indexLabel++;
     return r;
 }
 
-Register mipsLoad(ofstream & mipsFile, ASTObject *ast_obj, Register reg1) {
-    Register r;
-    MipsInstruction *mips_inst;
-    r.name = ""; r.type = "";
-    if(reg1.type == "INT") {
-        if(ast_obj->className == "VARIABLE") {
-            Variable *v = static_cast<Variable*>(ast_obj->statementClass);
-            if(v->var_type == "INT") {
-                mipsFile << "addi aux, $zero, 4\n";
-                mipsFile << "mult " << reg1.name << ", aux\n";
-                mipsFile << "mflo posic\n";
-                mipsFile << "add vetor" << ", " << v->name << ", posic\n";
-                mipsFile << "lw R" << indexLabel << ", (vetor)\n";
-                r.name = "R" + indexLabel; r.type = "INT"; r.tree = "LOAD";
-
-                mips_inst = new MipsInstruction(currentLabel, "addi", "aux", "$zero", "4");
-                instructionList.push_back(mips_inst);
-                mips_inst = new MipsInstruction(currentLabel, "mult", reg1.name, "aux", "");
-                instructionList.push_back(mips_inst);  
-                mips_inst = new MipsInstruction(currentLabel, "mflo", "posic", "", "");
-                instructionList.push_back(mips_inst);  
-                mips_inst = new MipsInstruction(currentLabel, "add", "vetor", v->name, "posic");
-                instructionList.push_back(mips_inst); 
-                mips_inst = new MipsInstruction(currentLabel, "lw", "R" + to_string(indexLabel), "(vetor)", "");
-                instructionList.push_back(mips_inst);  
-            }
-            if(v->var_type == "CHAR") {
-                mipsFile << "addi aux, $zero, 1\n";
-                mipsFile << "mult " << reg1.name << ", aux\n";
-                mipsFile << "mflo posic\n";
-                mipsFile << "add vetor" << ", " << v->name << ", posic\n";
-                mipsFile << "lw R" << indexLabel << ", (vetor)\n";
-                r.name = "R" + indexLabel; r.type = "CHAR"; r.tree = "LOAD";
-
-                mips_inst = new MipsInstruction(currentLabel, "addi", "aux", "$zero", "1");
-                instructionList.push_back(mips_inst);
-                mips_inst = new MipsInstruction(currentLabel, "mult", reg1.name, "aux", "");
-                instructionList.push_back(mips_inst);  
-                mips_inst = new MipsInstruction(currentLabel, "mflo", "posic", "", "");
-                instructionList.push_back(mips_inst);  
-                mips_inst = new MipsInstruction(currentLabel, "add", "vetor", v->name, "posic");
-                instructionList.push_back(mips_inst); 
-                mips_inst = new MipsInstruction(currentLabel, "lw", "R" + to_string(indexLabel), "(vetor)", "");
-                instructionList.push_back(mips_inst);  
-            }
-            if(v->var_type == "FLOAT") {
-                mipsFile << "addi aux, $zero, 4\n";
-                mipsFile << "mult " << reg1.name << ", aux\n";
-                mipsFile << "mflo posic\n";
-                mipsFile << "add vetor" << ", " << v->name << ", posic\n";
-                mipsFile << "l.s F" << indexLabel << ", (vetor)\n";
-                r.name = "F" + indexLabel; r.type = "FLOAT"; r.tree = "LOAD";
-
-                mips_inst = new MipsInstruction(currentLabel, "addi", "aux", "$zero", "4");
-                instructionList.push_back(mips_inst);
-                mips_inst = new MipsInstruction(currentLabel, "mult", reg1.name, "aux", "");
-                instructionList.push_back(mips_inst);  
-                mips_inst = new MipsInstruction(currentLabel, "mflo", "posic", "", "");
-                instructionList.push_back(mips_inst);  
-                mips_inst = new MipsInstruction(currentLabel, "add", "vetor", v->name, "posic");
-                instructionList.push_back(mips_inst); 
-                mips_inst = new MipsInstruction(currentLabel, "l.s", "F" + to_string(indexLabel), "(vetor)", "");
-                instructionList.push_back(mips_inst);  
-            }
-            if(v->var_type == "DOUBLE") {
-                mipsFile << "addi aux, $zero, 8\n";
-                mipsFile << "mult " << reg1.name << ", aux\n";
-                mipsFile << "mflo posic\n";
-                mipsFile << "add vetor" << ", " << v->name << ", posic\n";
-                mipsFile << "l.d F" << indexLabel << ", (vetor)\n";
-                r.name = "F" + indexLabel; r.type = "DOUBLE"; r.tree = "LOAD";
-
-                mips_inst = new MipsInstruction(currentLabel, "addi", "aux", "$zero", "8");
-                instructionList.push_back(mips_inst);
-                mips_inst = new MipsInstruction(currentLabel, "mult", reg1.name, "aux", "");
-                instructionList.push_back(mips_inst);  
-                mips_inst = new MipsInstruction(currentLabel, "mflo", "posic", "", "");
-                instructionList.push_back(mips_inst);  
-                mips_inst = new MipsInstruction(currentLabel, "add", "vetor", v->name, "posic");
-                instructionList.push_back(mips_inst); 
-                mips_inst = new MipsInstruction(currentLabel, "l.d", "F" + to_string(indexLabel), "(vetor)", "");
-                instructionList.push_back(mips_inst);  
-            }
-        }
-        else if(ast_obj->className == "CALLFUNCTION") {
-            CallFunction *c = static_cast<CallFunction*>(ast_obj->statementClass);
-            if(c->callfunc_type == "INT") {
-                mipsFile << "addi aux, $zero, 4\n";
-                mipsFile << "mult " << reg1.name << ", aux\n";
-                mipsFile << "mflo posic\n";
-                mipsFile << "add vetor" << ", " << c->funcName << ", posic\n";
-                mipsFile << "lw R" << indexLabel << ", (vetor)\n";
-                r.name = "R" + indexLabel; r.type = "INT"; r.tree = "LOAD";
-
-                mips_inst = new MipsInstruction(currentLabel, "addi", "aux", "$zero", "4");
-                instructionList.push_back(mips_inst);
-                mips_inst = new MipsInstruction(currentLabel, "mult", reg1.name, "aux", "");
-                instructionList.push_back(mips_inst);  
-                mips_inst = new MipsInstruction(currentLabel, "mflo", "posic", "", "");
-                instructionList.push_back(mips_inst);  
-                mips_inst = new MipsInstruction(currentLabel, "add", "vetor", c->funcName, "posic");
-                instructionList.push_back(mips_inst); 
-                mips_inst = new MipsInstruction(currentLabel, "lw", "R" + to_string(indexLabel), "(vetor)", "");
-                instructionList.push_back(mips_inst);  
-            }
-            if(c->callfunc_type == "CHAR") {
-                mipsFile << "addi aux, $zero, 1\n";
-                mipsFile << "mult " << reg1.name << ", aux\n";
-                mipsFile << "mflo posic\n";
-                mipsFile << "add vetor" << ", " << c->funcName << ", posic\n";
-                mipsFile << "lw R" << indexLabel << ", (vetor)\n";
-                r.name = "R" + indexLabel; r.type = "CHAR"; r.tree = "LOAD";
-
-                mips_inst = new MipsInstruction(currentLabel, "addi", "aux", "$zero", "1");
-                instructionList.push_back(mips_inst);
-                mips_inst = new MipsInstruction(currentLabel, "mult", reg1.name, "aux", "");
-                instructionList.push_back(mips_inst);  
-                mips_inst = new MipsInstruction(currentLabel, "mflo", "posic", "", "");
-                instructionList.push_back(mips_inst);  
-                mips_inst = new MipsInstruction(currentLabel, "add", "vetor", c->funcName, "posic");
-                instructionList.push_back(mips_inst); 
-                mips_inst = new MipsInstruction(currentLabel, "lw", "R" + to_string(indexLabel), "(vetor)", "");
-                instructionList.push_back(mips_inst);  
-            }
-            if(c->callfunc_type == "FLOAT") {
-                mipsFile << "addi aux, $zero, 4\n";
-                mipsFile << "mult " << reg1.name << ", aux\n";
-                mipsFile << "mflo posic\n";
-                mipsFile << "add vetor" << ", " << c->funcName << ", posic\n";
-                mipsFile << "l.s F" << indexLabel << ", (vetor)\n";
-                r.name = "F" + indexLabel; r.type = "FLOAT"; r.tree = "LOAD";
-
-                mips_inst = new MipsInstruction(currentLabel, "addi", "aux", "$zero", "4");
-                instructionList.push_back(mips_inst);
-                mips_inst = new MipsInstruction(currentLabel, "mult", reg1.name, "aux", "");
-                instructionList.push_back(mips_inst);  
-                mips_inst = new MipsInstruction(currentLabel, "mflo", "posic", "", "");
-                instructionList.push_back(mips_inst);  
-                mips_inst = new MipsInstruction(currentLabel, "add", "vetor", c->funcName, "posic");
-                instructionList.push_back(mips_inst); 
-                mips_inst = new MipsInstruction(currentLabel, "l.s", "F" + to_string(indexLabel), "(vetor)", "");
-                instructionList.push_back(mips_inst); 
-            }
-            if(c->callfunc_type == "DOUBLE") {
-                mipsFile << "addi aux, $zero, 8\n";
-                mipsFile << "mult " << reg1.name << ", aux\n";
-                mipsFile << "mflo posic\n";
-                mipsFile << "add vetor" << ", " << c->funcName << ", posic\n";
-                mipsFile << "l.d F" << indexLabel << ", (vetor)\n";
-                r.name = "F" + indexLabel; r.type = "DOUBLE"; r.tree = "LOAD";
-
-                mips_inst = new MipsInstruction(currentLabel, "addi", "aux", "$zero", "8");
-                instructionList.push_back(mips_inst);
-                mips_inst = new MipsInstruction(currentLabel, "mult", reg1.name, "aux", "");
-                instructionList.push_back(mips_inst);  
-                mips_inst = new MipsInstruction(currentLabel, "mflo", "posic", "", "");
-                instructionList.push_back(mips_inst);  
-                mips_inst = new MipsInstruction(currentLabel, "add", "vetor", c->funcName, "posic");
-                instructionList.push_back(mips_inst); 
-                mips_inst = new MipsInstruction(currentLabel, "l.d", "F" + to_string(indexLabel), "(vetor)", "");
-                instructionList.push_back(mips_inst); 
-            }
-        }
-    }
-    return r;
-}
-
-Register mipsStore(ofstream & mipsFile, ASTObject *ast_obj, Register reg1, Register reg2) {
+Register mipsStore(ofstream & mipsFile, Register reg1, Register reg2) {
     Register r;
     r.name = ""; r.type = "";
     MipsInstruction *mips_inst;
-
+    cout << reg1.type << " " << reg2.type << endl;
     if(reg1.type == reg2.type) {
         if(reg1.type == "INT") {
-            mipsFile << "sw " << reg2.name << ", (" << reg1.name << ")\n";
+            mipsFile << "sw " << reg2.name << ", (" << reg1.vetor << ")\n";
             r = reg1; r.tree = "STORE";
 
-            mips_inst = new MipsInstruction(currentLabel, "sw", reg2.name, "(" + reg1.name + ")", "");
-            instructionList.push_back(mips_inst);
-        }
-        if(reg1.type == "CHAR") {
-            mipsFile << "sw " << reg2.name << ", (" << reg1.name << ")\n";
-            r = reg1; r.tree = "STORE";
-
-            mips_inst = new MipsInstruction(currentLabel, "sw", reg2.name, "(" + reg1.name + ")", "");
-            instructionList.push_back(mips_inst);
-        }
-        if(reg1.type == "FLOAT") {
-            mipsFile << "s.s" << reg2.name << ", (" << reg1.name << ")\n";
-            r = reg1; r.tree = "STORE";
-
-            mips_inst = new MipsInstruction(currentLabel, "s.s", reg2.name, "(" + reg1.name + ")", "");
-            instructionList.push_back(mips_inst);
-        }
-        if(reg1.type == "DOUBLE") {
-            mipsFile << "s.d" << reg2.name << ", (" << reg1.name << ")\n";
-            r = reg1; r.tree = "STORE";
-
-            mips_inst = new MipsInstruction(currentLabel, "s.d", reg2.name, "(" + reg1.name + ")", "");
+            mips_inst = new MipsInstruction(currentLabel, "sw", reg2.name, "(" + reg1.vetor + ")", "");
             instructionList.push_back(mips_inst);
         }
     }
@@ -1228,171 +835,28 @@ Register mipsStore(ofstream & mipsFile, ASTObject *ast_obj, Register reg1, Regis
     return r;
 }
 
-Register mipsMove(ofstream & mipsFile, Expression *ex, Register reg1, Register reg2) {
+Register mipsMove(ofstream & mipsFile, Register reg1, Register reg2) {
     Register r;
     r.name = ""; r.type = "";
-    ASTObject *left = ex->left->term;
-    ASTObject *right = ex->right->term;
     string regLeft, regRight;
     MipsInstruction *mips_inst;
 
-    if(left->className == "VARIABLE") {
-        Variable *v = static_cast<Variable*>(left->statementClass);
-        regLeft = v->name;
-    }
-
-    if(right->className == "VARIABLE") {
-        Variable *v = static_cast<Variable*>(right->statementClass);
-        regRight = v->name;
-    }
-
     if(reg1.type == reg2.type) {
         if(reg1.type == "INT") {
-            mipsFile << "addi aux, $zero, 4\n";
-            mipsFile << "mult " << reg1.name << ", aux\n";
-            mipsFile << "mflo posic\n";
-            mipsFile << "add vetor1" << ", " << reg1.name << ", posic\n";
 
-            mipsFile << "mult " << reg2.name << ", aux\n";
-            mipsFile << "mflo posic\n";
-            mipsFile << "add vetor2" << ", " << reg2.name << ", posic\n"; 
-        
-            mipsFile << "lw R" << indexLabel << ", (vetor2)\n";
-            mipsFile << "sw R" << indexLabel << ", (vetor1)\n";
+            mipsFile << "lw R" << to_string(indexLabel) << ", " << reg2.vetor << "\n";
+            mipsFile << "sw R" << to_string(indexLabel) << ", (" << reg2.vetor << ")\n";
 
-            r.name = "R" + indexLabel; r.type = "INT"; r.tree = "MOVE";
+            r.name = "R" + to_string(indexLabel); r.type = "INT"; r.tree = "MOVE";
 
-            mips_inst = new MipsInstruction(currentLabel, "addi", "aux", "$zero", "4");
+            mips_inst = new MipsInstruction(currentLabel, "lw", "R" + to_string(indexLabel), reg2.vetor, "");
             instructionList.push_back(mips_inst);
-            mips_inst = new MipsInstruction(currentLabel, "mult", reg1.name, "aux", "");
-            instructionList.push_back(mips_inst);  
-            mips_inst = new MipsInstruction(currentLabel, "mflo", "posic", "", "");
-            instructionList.push_back(mips_inst);  
-            mips_inst = new MipsInstruction(currentLabel, "add", "vetor1", reg1.name, "posic");
-            instructionList.push_back(mips_inst); 
-
-            mips_inst = new MipsInstruction(currentLabel, "mult", reg2.name, "aux", "");
-            instructionList.push_back(mips_inst);  
-            mips_inst = new MipsInstruction(currentLabel, "mflo", "posic", "", "");
-            instructionList.push_back(mips_inst);  
-            mips_inst = new MipsInstruction(currentLabel, "add", "vetor2", reg2.name, "posic");
-            instructionList.push_back(mips_inst); 
-
-            mips_inst = new MipsInstruction(currentLabel, "lw", "R" + to_string(indexLabel), "(vetor2)", "");
-            instructionList.push_back(mips_inst);
-            mips_inst = new MipsInstruction(currentLabel, "sw", "R" + to_string(indexLabel), "(vetor1)", "");
-            instructionList.push_back(mips_inst); 
-        }
-        if(reg1.type == "CHAR") {
-            mipsFile << "addi aux, $zero, 1\n";
-            mipsFile << "mult " << reg1.name << ", aux\n";
-            mipsFile << "mflo posic\n";
-            mipsFile << "add vetor1" << ", " << reg1.name << ", posic\n";
-
-            mipsFile << "mult " << reg2.name << ", aux\n";
-            mipsFile << "mflo posic\n";
-            mipsFile << "add vetor2" << ", " << reg2.name << ", posic\n"; 
-        
-            mipsFile << "lw R" << indexLabel << ", (vetor2)\n";
-            mipsFile << "sw R" << indexLabel << ", (vetor1)\n";
-            
-            r.name = "R" + indexLabel; r.type = "CHAR"; r.tree = "MOVE";
-
-            mips_inst = new MipsInstruction(currentLabel, "addi", "aux", "$zero", "1");
-            instructionList.push_back(mips_inst);
-            mips_inst = new MipsInstruction(currentLabel, "mult", reg1.name, "aux", "");
-            instructionList.push_back(mips_inst);  
-            mips_inst = new MipsInstruction(currentLabel, "mflo", "posic", "", "");
-            instructionList.push_back(mips_inst);  
-            mips_inst = new MipsInstruction(currentLabel, "add", "vetor1", reg1.name, "posic");
-            instructionList.push_back(mips_inst); 
-
-            mips_inst = new MipsInstruction(currentLabel, "mult", reg2.name, "aux", "");
-            instructionList.push_back(mips_inst);  
-            mips_inst = new MipsInstruction(currentLabel, "mflo", "posic", "", "");
-            instructionList.push_back(mips_inst);  
-            mips_inst = new MipsInstruction(currentLabel, "add", "vetor2", reg2.name, "posic");
-            instructionList.push_back(mips_inst); 
-
-            mips_inst = new MipsInstruction(currentLabel, "lw", "R" + to_string(indexLabel), "(vetor2)", "");
-            instructionList.push_back(mips_inst);
-            mips_inst = new MipsInstruction(currentLabel, "sw", "R" + to_string(indexLabel), "(vetor1)", "");
-            instructionList.push_back(mips_inst); 
-        }
-        if(reg1.type == "FLOAT") {
-            mipsFile << "addi aux, $zero, 4\n";
-            mipsFile << "mult " << reg1.name << ", aux\n";
-            mipsFile << "mflo posic\n";
-            mipsFile << "add vetor1" << ", " << reg1.name << ", posic\n";
-
-            mipsFile << "mult " << reg2.name << ", aux\n";
-            mipsFile << "mflo posic\n";
-            mipsFile << "add vetor2" << ", " << reg2.name << ", posic\n"; 
-        
-            mipsFile << "l.s F" << indexLabel << ", (vetor2)\n";
-            mipsFile << "s.s F" << indexLabel << ", (vetor1)\n";
-            
-            r.name = "F" + indexLabel; r.type = "FLOAT"; r.tree = "MOVE";
-
-            mips_inst = new MipsInstruction(currentLabel, "addi", "aux", "$zero", "4");
-            instructionList.push_back(mips_inst);
-            mips_inst = new MipsInstruction(currentLabel, "mult", reg1.name, "aux", "");
-            instructionList.push_back(mips_inst);  
-            mips_inst = new MipsInstruction(currentLabel, "mflo", "posic", "", "");
-            instructionList.push_back(mips_inst);  
-            mips_inst = new MipsInstruction(currentLabel, "add", "vetor1", reg1.name, "posic");
-            instructionList.push_back(mips_inst); 
-
-            mips_inst = new MipsInstruction(currentLabel, "mult", reg2.name, "aux", "");
-            instructionList.push_back(mips_inst);  
-            mips_inst = new MipsInstruction(currentLabel, "mflo", "posic", "", "");
-            instructionList.push_back(mips_inst);  
-            mips_inst = new MipsInstruction(currentLabel, "add", "vetor2", reg2.name, "posic");
-            instructionList.push_back(mips_inst); 
-
-            mips_inst = new MipsInstruction(currentLabel, "l.s", "F" + to_string(indexLabel), "(vetor2)", "");
-            instructionList.push_back(mips_inst);
-            mips_inst = new MipsInstruction(currentLabel, "s.s", "F" + to_string(indexLabel), "(vetor1)", "");
-            instructionList.push_back(mips_inst); 
-        }
-        if(reg1.type == "DOUBLE") {
-            mipsFile << "addi aux, $zero, 4\n";
-            mipsFile << "mult " << reg1.name << ", aux\n";
-            mipsFile << "mflo posic\n";
-            mipsFile << "add vetor1" << ", " << reg1.name << ", posic\n";
-
-            mipsFile << "mult " << reg2.name << ", aux\n";
-            mipsFile << "mflo posic\n";
-            mipsFile << "add vetor2" << ", " << reg2.name << ", posic\n"; 
-        
-            mipsFile << "l.d F" << indexLabel << ", (vetor2)\n";
-            mipsFile << "s.d F" << indexLabel << ", (vetor1)\n";
-            
-            r.name = "F" + indexLabel; r.type = "DOUBLE"; r.tree = "MOVE";
-
-            mips_inst = new MipsInstruction(currentLabel, "addi", "aux", "$zero", "8");
-            instructionList.push_back(mips_inst);
-            mips_inst = new MipsInstruction(currentLabel, "mult", reg1.name, "aux", "");
-            instructionList.push_back(mips_inst);  
-            mips_inst = new MipsInstruction(currentLabel, "mflo", "posic", "", "");
-            instructionList.push_back(mips_inst);  
-            mips_inst = new MipsInstruction(currentLabel, "add", "vetor1", reg1.name, "posic");
-            instructionList.push_back(mips_inst); 
-
-            mips_inst = new MipsInstruction(currentLabel, "mult", reg2.name, "aux", "");
-            instructionList.push_back(mips_inst);  
-            mips_inst = new MipsInstruction(currentLabel, "mflo", "posic", "", "");
-            instructionList.push_back(mips_inst);  
-            mips_inst = new MipsInstruction(currentLabel, "add", "vetor2", reg2.name, "posic");
-            instructionList.push_back(mips_inst); 
-
-            mips_inst = new MipsInstruction(currentLabel, "l.d", "F" + to_string(indexLabel), "(vetor2)", "");
-            instructionList.push_back(mips_inst);
-            mips_inst = new MipsInstruction(currentLabel, "s.d", "F" + to_string(indexLabel), "(vetor1)", "");
+            mips_inst = new MipsInstruction(currentLabel, "sw", "R" + to_string(indexLabel), "(" + reg1.vetor + ")", "");
             instructionList.push_back(mips_inst); 
         }
     }
 
+    indexLabel++;
     return r;
 }
 
@@ -1402,25 +866,27 @@ Register Expression::mipsMinimalMunch(ofstream & mipsFile, Expression *ex){
     if (ex == NULL) 
         return reg;
 
-    reg1 = ex->mipsMinimalMunch(mipsFile, ex->left);
-
+    reg1 = ex->mipsMinimalMunch(mipsFile,ex->left);
+    if(reg1.tree == "VECTOR") {
+        reg1 = mipsLoad(mipsFile, reg1);
+    }
 
     reg2 = ex->mipsMinimalMunch(mipsFile, ex->right);
+	if(reg2.tree == "VECTOR") {
+		reg2 = mipsLoad(mipsFile, reg2);;
+	}
 
     if(reg1.tree == "" && reg2.tree == "") {
         reg = mipsADDIConstant(mipsFile, ex->term);
     } 
-    else if(reg1.tree == "CONSTANT" && reg2.tree == "CONSTANT") {
+    else if((reg1.tree == "CONSTANT" && reg2.tree == "CONSTANT") ||
+    		(reg1.tree == "CONSTANT" && reg2.tree == "OPERATION" ) ||
+			(reg1.tree == "CONSTANT" && reg2.tree == "LOAD" ) ||
+			(reg1.tree == "LOAD" && reg2.tree == "CONSTANT" ) ||
+    		(reg1.tree == "LOAD" && reg2.tree == "OPERATION") ||
+			(reg1.tree == "LOAD" && reg2.tree == "LOAD"))
+    {
         reg = mipsADDIOperations(mipsFile, ex->op, reg1, reg2);
-    }
-    else if((reg1.tree == "CONSTANT" || reg1.tree == "OPERATION") && reg2.tree == "") { //Para vetores
-        reg = mipsLoad(mipsFile, ex->term, reg1);
-    }
-    else if(reg1.name == "LOAD" && reg2.name != "") {
-        reg = mipsStore(mipsFile, ex->term, reg1, reg2);
-    }
-    else if(reg1.name == "LOAD" && reg2.name == "LOAD") {
-        reg = mipsMove(mipsFile, ex, reg1, reg2);
     }
 
     return reg;
@@ -1430,24 +896,28 @@ Register Expression::mipsExpression(ofstream & mipsFile){
     Register reg1, reg2, reg;
     //Esquerda
     reg1 = this->mipsMinimalMunch(mipsFile, this->left);
+    if(reg1.tree == "VECTOR") {
+    	reg1 = mipsLoad(mipsFile, reg1);
+    }
 
     //Direita
     reg2 = this->mipsMinimalMunch(mipsFile, this->right);
+    if(reg2.tree == "VECTOR") {
+    	reg2 = mipsLoad(mipsFile, reg2);
+    }
 
     if(reg1.tree == "" && reg2.tree == "") {
         reg = mipsADDIConstant(mipsFile, this->term);
     } 
-    else if(reg1.tree == "CONSTANT" && reg2.tree == "CONSTANT") {
+    else if((reg1.tree == "CONSTANT" && reg2.tree == "CONSTANT") ||
+    		(reg1.tree == "CONSTANT" && reg2.tree == "OPERATION" ) ||
+			(reg1.tree == "CONSTANT" && reg2.tree == "LOAD" ) ||
+			(reg1.tree == "LOAD" && reg2.tree == "CONSTANT" ) ||
+    		(reg1.tree == "LOAD" && reg2.tree == "OPERATION") ||
+			(reg1.tree == "LOAD" && reg2.tree == "LOAD"))
+    {
         reg = mipsADDIOperations(mipsFile, this->op, reg1, reg2);
     }
-    else if((reg1.tree == "CONSTANT" || reg1.tree == "OPERATION") && reg2.tree == "") { //Para vetores
-        reg = mipsLoad(mipsFile, this->term, reg1);
-    }
-    else if(reg1.name == "LOAD" && reg2.name != "") {
-        reg = mipsStore(mipsFile, this->term, reg1, reg2);
-    }
-    else if(reg1.name == "LOAD" && reg2.name == "LOAD") {
-        reg = mipsMove(mipsFile, this, reg1, reg2);
-    }
+
     return reg;
 }

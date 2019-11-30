@@ -11,6 +11,7 @@
 using namespace std;
 
 class ASTObject;
+class Register;
 class Expression;
 class CondicionalExpression;
 class BoolOperatorCondicional;
@@ -47,6 +48,7 @@ class Program {
         Program(){
             symbolTable = new HashTable(90);
         };
+        void mipsProgram(ofstream & mipsFile);
 };
 
 class FunctionParam{
@@ -61,9 +63,10 @@ class Function{
         string name;
         list<FunctionParam*> paramsList;
         string return_type;
-        list<Statement*> statementList;
+        Statement* statementList;
         Function(){
             symbolTable = new HashTable(90);
+            this->statementList = NULL;
         };
         void mipsFunction(ofstream & mipsFile);
 };
@@ -76,6 +79,7 @@ class Variable {
         vector<int> dimension_size; //Caso for vetor, matrix, etc - definir as dimensões do mesmo
         vector<Expression*> dimension_exp;
         Variable(){};
+        Register mipsVariableVector(ofstream & mipsFile, string funcName);
 };
 
 class Number {
@@ -108,16 +112,21 @@ class ASTObject {
         // IF, FOR, WHILE, DOWHILE, SCANF, PRINTF, RETURN, EXIT, ASSIGNMENT, CALLFUNCTION, VARIABLE, CONSTANTE
         void *statementClass;
         string className;
-        ASTObject(){};
+        ASTObject(){
+        	this->statementClass = NULL;
+        };
 };
 
 class Assignment {
     public:
-        Variable variable;
+        Variable *variable;
         //Pode ser uma Expression ou um CallFunction
         ASTObject *assignObject;
         void mipsAssignment(ofstream & mipsFile, int label, string funcName);
-        Assignment(){};
+        Assignment(){
+        	this->variable = NULL;
+        	this->assignObject = NULL;
+        };
 };
 
 class Statement {
@@ -132,7 +141,9 @@ class DoWhile {
         list<Statement*> statementList;
         BoolOperatorCondicional *condExp;
         void mipsDoWhile(ofstream & mipsFile, int label, string funcName);
-        DoWhile(){};
+        DoWhile(){
+        	this->condExp = NULL;
+        };
 };
 
 class While {
@@ -140,7 +151,9 @@ class While {
         BoolOperatorCondicional *condExp;
         list<Statement*> statementList;
         void mipsWhile(ofstream & mipsFile, int label, string funcName);
-        While(){};
+        While(){
+        	this->condExp = NULL;
+        };
 };
 
 class IF {
@@ -149,7 +162,9 @@ class IF {
         list<Statement*> statementListThen;
         list<Statement*> statementListElse;
         void mipsIF(ofstream & mipsFile, int labelElse, string funcName);
-        IF(){};
+        IF(){
+        	this->condExp = NULL;
+        };
 };
 
 
@@ -219,21 +234,24 @@ class Return {
 
 class Register {
     public:
-        string name;
-        string type;
-        string tree;
+        string name = "";
+        string type = "";
+        string vetor = "";
+        string tree = "";
         Register(){};
 };
 
 class Expression {
     public:
         ASTObject *term;
-        Expression *left; 
-        string op; 
+        Expression *left;
+        string op;
         Expression *right;
         Register mipsExpression(ofstream & mipsFile);
         Register mipsMinimalMunch(ofstream & mipsFile, Expression *ex);
-        Expression(){};
+        Expression(){
+        	this->term = NULL; this->left = NULL; this->right = NULL; this->op = "";
+        };
 };
 
 class StringsLabel{

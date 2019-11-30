@@ -6,35 +6,19 @@
 using namespace std;
 
 int main() {
+	ofstream mipsFile;
+    mipsFile.open ("MipsSaida.txt");
+//   string input;
+//   vector<string> file_input;
+//   //Leitura da entrada
+//   while(getline(cin, input)) {
+//      file_input.push_back(input);
+//   }
+//   Arquivo *file = new Arquivo(file_input);
 
-   string input;
-   vector<string> file_input;
-   //Leitura da entrada
-   while(getline(cin, input)) {
-      file_input.push_back(input);
-   }
-   Arquivo *file = new Arquivo(file_input);
-   
-   return 0;
-   /*
    Program *p = new Program();
-   Function *fatorial = new Function();
    Function *main_ = new Function();
-
-   p->functionsList.push_back(fatorial);
    p->functionsList.push_back(main_);
-
-   fatorial->name = "fatorial";
-   fatorial->return_type = "INT";
-
-   FunctionParam *parm = new FunctionParam();
-   parm->name = "n";
-   parm->parm_type = "INT";
-
-   fatorial->paramsList.push_back(parm);
-
-
-
    main_->name = "main";
    main_->return_type = "INT";
    
@@ -45,86 +29,112 @@ int main() {
    as->className = "VARIABLE";
    as->statementClass = var;
 
-   Printf *pf1 = new Printf();
-   pf1->message = "Entre com um valor inteiro:";
-   ASTObject *aspf1 = new ASTObject();
-   aspf1->statementClass = pf1;
-   aspf1->className = "PRINTF";
+   Number *n1 = new Number();
+   Number *n2 = new Number();
+   Number *n3 = new Number();
 
-   Scanf *sc = new Scanf();
-   sc->message = "%d";
-   sc->variables_type.push_back('d');
-   Variable *var_nnn = new Variable();
-   var_nnn->name = "n";
-   var_nnn->var_type = "INT";
-   Expression *exsc = new Expression();
-   ASTObject *assf = new ASTObject();
-   assf->statementClass = var_nnn;
-   assf->className = "VARIABLE";
-   exsc->term = assf;
-   sc->variables.push_back(exsc);
-   
-   ASTObject *sf1 = new ASTObject();
-   sf1->statementClass = sc;
-   sf1->className = "SCANF";
+   n1->value = "10";
+   n1->number_type = "INT";
+   n2->value = "10";
+   n2->number_type = "INT";
+   n3->value = "10";
+   n3->number_type = "INT";
 
-   Printf *pf2 = new Printf();
-   pf2->message = "O fatorial de %d eh: %d\n";
-   pf2->variables_type.push_back('d');
-   pf2->variables_type.push_back('d');
-   ASTObject *aspf_2 = new ASTObject();
-   aspf_2->statementClass = pf2;
-   aspf_2->className = "PRINTF";
+   Assignment *assig = new Assignment();
+   assig->variable = var;
 
-   ASTObject *aspf2 = new ASTObject();
-   ASTObject *aspf3 = new ASTObject();
+   ASTObject *ast_ex = new ASTObject();
+   ASTObject *ast_term1 = new ASTObject();
+   ASTObject *ast_term2 = new ASTObject();
+   ASTObject *ast_term3 = new ASTObject();
+   ASTObject *ast_term4 = new ASTObject();
 
-   Variable *var_n = new Variable();
-   var_n->name = "n";
-   var_n->var_type = "INT";
-   aspf2->statementClass = var_n;
-   aspf2->className = "VARIABLE";
+   Expression *ex = new Expression();
+   Expression *ex2 = new Expression();
+   Expression *ex3 = new Expression();
+   Expression *ex4 = new Expression();
+   Expression *ex5 = new Expression();
+   Expression *ex6 = new Expression();
+   Expression *ex7 = new Expression();
 
-   CallFunction *cf = new CallFunction();
-   cf->funcName = "fatorial";
-   Expression *expf = new Expression();
-   Variable *var_nn = new Variable();
-   var_nn->name = "n";
-   var_nn->var_type = "INT";
-   ASTObject *aspf4 = new ASTObject();
-   aspf4->statementClass = var_nn;
-   aspf4->className = "VARIABLE";
-   expf->term = aspf4;
-   cf->params.push_back(expf);
-   aspf3->statementClass = cf;
-   aspf3->className = "CALLFUNCTION";
+   Variable *v = new Variable();
+   v->name = "a";
+   v->var_type = "INT";
+   v->dimension_size.push_back(10);
+   Expression *ex_vector = new Expression();
+   Expression *ex_vector_l = new Expression();
+   Expression *ex_vector_r = new Expression();
+   ASTObject *vector_term1 = new ASTObject();
+   ASTObject *vector_term2 = new ASTObject();
 
-   pf2->paramsList.push_back(aspf2);
-   pf2->paramsList.push_back(aspf3);
+   Variable *v_vector = new Variable();
+   v_vector->name = "i"; v_vector->var_type = "INT";
+   Number *n1_vector = new Number();
+   n1_vector->value = "1"; n1_vector->number_type = "INT";
+   v->dimension_exp.push_back(ex_vector);
+   ex_vector->op = "+";
+   ex_vector->left = ex_vector_l;
+   ex_vector->right = ex_vector_r;
+   ex_vector_l->term = vector_term1;
+   ex_vector_r->term = vector_term2;
+   vector_term1->statementClass = static_cast<void*>(v_vector);
+   vector_term1->className = "VARIABLE";
+   vector_term2->statementClass = static_cast<void*>(n1_vector);
+   vector_term2->className = "NUMBER";
 
-   Return *r = new Return();
-   Expression *exr = new Expression();
-   ASTObject *asr = new ASTObject();
-   Number *numb = new Number();
-   numb->value = "0";
-   numb->number_type = "INT";
-   asr->statementClass = numb;
-   asr->className = "NUMBER";
-   exr->term = asr;
-   r->exp = exr;
-   ASTObject *asrr = new ASTObject();
-   asrr->statementClass = r;
-   asrr->className = "RETURN";
+   ex->op = "+";
+   ex->left = ex2;
+   ex->right = ex3;
+   ex2->term = ast_term1;
+   ex3->op = "+";
+   ex3->left = ex4;
+   ex3->right = ex5;
+   ex4->term = ast_term2;
+   ex5->op = "+";
+   ex5->left = ex6;
+   ex5->right = ex7;
+   ex6->term = ast_term3;
+   ex7->term = ast_term4;
 
 
-   Statement *s = new Statement();
-   s->statement.push_back(as);
-   s->statement.push_back(aspf1);
-   s->statement.push_back(sf1);
-   s->statement.push_back(aspf_2);
-   s->statement.push_back(asrr);
-   main_->statementList.push_back(s);
+   ast_ex->statementClass = static_cast<void*>( ex );
+   ast_ex->className = "EXPRESSION";
 
-   return 0;*/
+   ast_term1->statementClass = static_cast<void*>( n1 );
+   ast_term1->className = "NUMBER";
+   ast_term2->statementClass = static_cast<void*>( n2 );
+   ast_term2->className = "NUMBER";
+   ast_term3->statementClass = static_cast<void*>( v );
+   ast_term3->className = "VARIABLE";
+   ast_term4->statementClass = static_cast<void*>( n3 );
+   ast_term4->className = "NUMBER";
+
+   assig->assignObject = ast_ex;
+
+   Assignment *assig2 = new Assignment();
+   assig2->variable = v;
+   ASTObject *ast_2assig2 = new ASTObject();
+   ast_2assig2->className = "EXPRESSION";
+   ast_2assig2->statementClass = static_cast<void*>(ex6);
+   assig2->assignObject = ast_2assig2;
+
+   ASTObject *ast_assig = new ASTObject();
+   ASTObject *ast_assig2 = new ASTObject();
+   ast_assig->statementClass = static_cast<void*>(assig);
+   ast_assig2->statementClass = static_cast<void*>(assig2);
+   ast_assig->className = "ASSIGNMENT";
+   ast_assig2->className = "ASSIGNMENT";
+   Statement *s2 = new Statement();
+   s2->statement.push_back(as);
+//   s2->statement.push_back(ast_assig);
+   s2->statement.push_back(ast_assig2);
+   main_->statementList = s2;
+
+   p->mipsProgram(mipsFile);
+
+   mipsFile.close();
+   cout << "FIM" <<endl;
+   return 0;
+
 }
 
