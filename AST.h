@@ -104,7 +104,7 @@ class CallFunction {
         string callfunc_type;
         vector<int> dimension_size;
         CallFunction(){};
-        void mipsCallFunction(ofstream & mipsFile, string funcName);
+        Register mipsCallFunction(ofstream & mipsFile, string funcName);
 };
 
 class ASTObject {
@@ -138,10 +138,11 @@ class Statement {
 
 class DoWhile {
     public:
-        list<Statement*> statementList;
+        Statement* statementList;
         BoolOperatorCondicional *condExp;
         void mipsDoWhile(ofstream & mipsFile, int label, string funcName);
         DoWhile(){
+        	this->statementList = NULL;
         	this->condExp = NULL;
         };
 };
@@ -149,9 +150,10 @@ class DoWhile {
 class While {
     public:
         BoolOperatorCondicional *condExp;
-        list<Statement*> statementList;
+        Statement* statementList;
         void mipsWhile(ofstream & mipsFile, int label, string funcName);
         While(){
+        	this->statementList = NULL;
         	this->condExp = NULL;
         };
 };
@@ -159,14 +161,15 @@ class While {
 class IF {
     public:
         BoolOperatorCondicional *condExp;
-        list<Statement*> statementListThen;
-        list<Statement*> statementListElse;
+        Statement* statementListThen;
+        Statement* statementListElse;
         void mipsIF(ofstream & mipsFile, int labelElse, string funcName);
         IF(){
         	this->condExp = NULL;
+        	this->statementListThen = NULL;
+        	this->statementListElse = NULL;
         };
 };
-
 
 class BoolOperatorCondicional {
     public:
@@ -177,7 +180,12 @@ class BoolOperatorCondicional {
         void mipsBOCAnd(ofstream & mipsFile, string op, string R1, string R2, string label);
         void mipsBOCOR(ofstream & mipsFile, string op, string R1, string R2, string label);
         void mipsBOCBoolCondicional(ofstream & mipsFile, string labelThen, string labelElse);
-        BoolOperatorCondicional(){};
+        BoolOperatorCondicional(){
+        	this->boolOperator = "";
+        	this->condExpLeft = NULL;
+        	this->condExpRight = NULL;
+        	this->nextBOC = NULL;
+        };
 };
 
 class CondicionalExpression {
@@ -185,35 +193,40 @@ class CondicionalExpression {
         Expression *left; 
         string op;  // <, >, <=, >=. !=, ==
         Expression *right;
-        CondicionalExpression(){};
+        CondicionalExpression(){
+        	this->op = "";
+        	this->left = NULL;
+        	this->right = NULL;
+        };
 };
-
 
 class For {
     public:
-        list<Expression*> valuesInitialization;
+        list<Assignment*> valuesInitialization;
         BoolOperatorCondicional *condExp;
-        list<Expression*> valuesAdjustment;
-        list<Statement*> statementList;
+        list<Assignment*> valuesAdjustment;
+        Statement* statementList;
         void mipsFor(ofstream & mipsFile, int label, string funcName);
-        For(){};
+        For(){
+        	this->statementList = NULL;
+        	this->condExp = NULL;
+        };
 };
 
 class Printf {
     public:
-        string message;
-        vector<char> variables_type;
+        vector<string> message;
         //Expression and CallFunction
         list<ASTObject*> paramsList;
         void mipsPrintf(ofstream & mipsFile, int label, string funcName);
-        Printf(){};
+        Printf(){
+        };
 };
 
 class Scanf {
     public:
-        string message;
-        vector<char> variables_type; 
-        list<Expression*> variables;
+    	vector<string> message;
+        list<Expression*> paramsList;
         void mipsScanf(ofstream & mipsFile, int label, string funcName);
         Scanf(){};
 };
@@ -222,14 +235,18 @@ class Exit {
     public:
         Expression *exp;
         void mipsExit(ofstream & mipsFile);
-        Exit(){};
+        Exit(){
+        	this->exp = exp;
+        };
 };
 
 class Return {
     public:
         Expression *exp;
         void mipsReturn(ofstream & mipsFile);
-        Return(){};
+        Return(){
+        	this->exp = NULL;
+        };
 };
 
 class Register {

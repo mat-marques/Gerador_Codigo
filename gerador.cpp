@@ -124,13 +124,119 @@ int main() {
    ast_assig2->statementClass = static_cast<void*>(assig2);
    ast_assig->className = "ASSIGNMENT";
    ast_assig2->className = "ASSIGNMENT";
+
+   Exit *exit_ = new Exit();
+   Return *return_ = new Return();
+
+   exit_->exp = ex;
+   return_->exp = ex;
+   ASTObject *ast_assig3 = new ASTObject();
+   ASTObject *ast_assig4 = new ASTObject();
+   ast_assig3->statementClass = static_cast<void*>(exit_);
+   ast_assig3->className = "EXIT";
+   ast_assig4->statementClass = static_cast<void*>(return_);
+   ast_assig4->className = "RETURN";
+
+   CallFunction *cf = new CallFunction();
+   cf->callfunc_type = "INT";
+   cf->funcName = "Teste";
+   cf->params.push_back(ex);
+   cf->params.push_back(ex);
+   cf->params.push_back(ex);
+   cf->params.push_back(ex);
+   ASTObject *ast_assig5 = new ASTObject();
+   ast_assig5->statementClass = static_cast<void*>(cf);
+   ast_assig5->className = "CALLFUNCTION";
+
+
+   Printf *pf = new Printf();
+
+   pf->message.push_back("Valores ");
+   pf->message.push_back("%d");
+   pf->message.push_back("\n");
+   pf->paramsList.push_back(ast_ex);
+   ASTObject *ast_assig6 = new ASTObject();
+   ast_assig6->statementClass = static_cast<void*>(pf);
+   ast_assig6->className = "PRINTF";
+
+   Scanf *sf = new Scanf();
+   sf->message.push_back("%d");
+   Expression *ex_2 = new Expression();
+   ASTObject *ast_assig_01 = new ASTObject();
+   ast_assig_01->statementClass = static_cast<void*>(var);
+   ast_assig_01->className = "VARIABLE";
+   ex_2->term = ast_assig_01;
+   sf->paramsList.push_back(ex_2);
+   ASTObject *ast_assig7 = new ASTObject();
+   ast_assig7->statementClass = static_cast<void*>(sf);
+   ast_assig7->className = "SCANF";
+
+   IF *if_ = new IF();
+   BoolOperatorCondicional *bop = new BoolOperatorCondicional();
+   if_->condExp = bop;
+   CondicionalExpression *co = new CondicionalExpression();
+   co->left = ex_2;
+   co->op = "<";
+   co->right = ex_2;
+
+   bop->condExpLeft = co;
+   bop->boolOperator = "&&";
+   bop->condExpRight = co;
+
+   Statement *s3 = new Statement();
+   if_->statementListThen = s3;
+   if_->statementListElse = s3;
+   s3->statement.push_back(ast_assig6);
+   s3->statement.push_back(ast_assig7);
+
+   ASTObject *ast_assig8 = new ASTObject();
+   ast_assig8->statementClass = static_cast<void*>(if_);
+   ast_assig8->className = "IF";
+
+   DoWhile *dow = new DoWhile();
+
+   dow->condExp = bop;
+   dow->statementList = s3;
+
+   ASTObject *ast_assig9 = new ASTObject();
+   ast_assig9->statementClass = static_cast<void*>(dow);
+   ast_assig9->className = "DOWHILE";
+
+   While *whi = new While();
+   whi->condExp = bop;
+   whi->statementList = s3;
+
+   ASTObject *ast_assig10 = new ASTObject();
+   ast_assig10->statementClass = static_cast<void*>(whi);
+   ast_assig10->className = "WHILE";
+
+   For *fo = new For();
+   fo->valuesInitialization.push_back(assig2);
+   fo->condExp = bop;
+   fo->statementList = s3;
+   fo->valuesAdjustment.push_back(assig2);
+
+   ASTObject *ast_assig11 = new ASTObject();
+   ast_assig11->statementClass = static_cast<void*>(fo);
+   ast_assig11->className = "FOR";
+
    Statement *s2 = new Statement();
    s2->statement.push_back(as);
-//   s2->statement.push_back(ast_assig);
+// s2->statement.push_back(ast_assig);
    s2->statement.push_back(ast_assig2);
+   s2->statement.push_back(ast_assig3);
+   s2->statement.push_back(ast_assig4);
+   s2->statement.push_back(ast_assig5);
+   s2->statement.push_back(ast_assig6);
+   s2->statement.push_back(ast_assig7);
+   s2->statement.push_back(ast_assig8);
+   s2->statement.push_back(ast_assig9);
+   s2->statement.push_back(ast_assig10);
+   s2->statement.push_back(ast_assig11);
    main_->statementList = s2;
 
    p->mipsProgram(mipsFile);
+
 
    mipsFile.close();
    cout << "FIM" <<endl;
