@@ -1,0 +1,124 @@
+j main
+fatorial:
+addi $sp, $sp, -52
+sw  $t0, 0($sp)
+sw  $t1, 4($sp)
+sw  $t2, 8($sp)
+sw  $t3, 12($sp)
+sw  $t4, 16($sp)
+sw  $t5, 20($sp)
+sw  $t6, 24($sp)
+sw  $t7, 28($sp)
+sw  $a0, 32($sp)
+sw  $a1, 36($sp)
+sw  $a2, 40($sp)
+sw  $a3, 44($sp)
+sw  $ra, 48($sp)
+addi R0, $zero, n
+addi R1, $zero, 0
+bgt R0, R1, EndIF0fatorial
+ThenIF0fatorial:
+addi R2, $zero, 0
+move $v0, R2
+lw  $t0, 0($sp)
+lw  $t1, 4($sp)
+lw  $t2, 8($sp)
+lw  $t3, 12($sp)
+lw  $t4, 16($sp)
+lw  $t5, 20($sp)
+lw  $t6, 24($sp)
+lw  $t7, 28($sp)
+lw  $a0, 32($sp)
+lw  $a1, 36($sp)
+lw  $a2, 40($sp)
+lw  $a3, 44($sp)
+lw  $ra, 48($sp)
+addi $sp, $sp, 52
+jr $ra
+EndIF0fatorial:
+addi R3, $zero, n
+addi R4, $zero, 1
+bnq R3, R4, ElseIF1fatorial
+ThenIF1fatorial:
+addi R5, $zero, 1
+move $v0, R5
+lw  $t0, 0($sp)
+lw  $t1, 4($sp)
+lw  $t2, 8($sp)
+lw  $t3, 12($sp)
+lw  $t4, 16($sp)
+lw  $t5, 20($sp)
+lw  $t6, 24($sp)
+lw  $t7, 28($sp)
+lw  $a0, 32($sp)
+lw  $a1, 36($sp)
+lw  $a2, 40($sp)
+lw  $a3, 44($sp)
+lw  $ra, 48($sp)
+addi $sp, $sp, 52
+jr $ra
+j EndIF1fatorial
+ElseIF1fatorial:
+addi R6, $zero, n
+addi R7, $zero, n
+addi R8, $zero, 1
+sub R9, R7, R8
+move $a0, R9
+jal fatorial
+move R10, $v0
+mult R6, R10
+mflo R12
+move $v0, R12
+lw  $t0, 0($sp)
+lw  $t1, 4($sp)
+lw  $t2, 8($sp)
+lw  $t3, 12($sp)
+lw  $t4, 16($sp)
+lw  $t5, 20($sp)
+lw  $t6, 24($sp)
+lw  $t7, 28($sp)
+lw  $a0, 32($sp)
+lw  $a1, 36($sp)
+lw  $a2, 40($sp)
+lw  $a3, 44($sp)
+lw  $ra, 48($sp)
+addi $sp, $sp, 52
+jr $ra
+EndIF1fatorial:
+main:
+li $v0, 4
+la $a0, Printf0main
+syscall
+addi R13, $zero, n
+li $v0, 5
+syscall
+move R13, $v0
+li $v0, 4
+la $a0, Printf1main
+syscall
+addi R14, $zero, n
+li $v0, 1
+move $a0, R14
+syscall
+li $v0, 4
+la $a0, Printf3main
+syscall
+addi R15, $zero, n
+move $a0, R15
+jal fatorial
+move R16, $v0
+li $v0, 1
+move $a0, R16
+syscall
+li $v0, 4
+la $a0, Printf5main
+syscall
+addi R17, $zero, 0
+move $v0, R17
+li $v0, 10
+syscall
+Printf0main: .asciiz "Entre com um valor inteiro:"
+Printf1main: .asciiz "O fatorial de "
+Printf3main: .asciiz "eh: "
+Printf5main: .asciiz "
+"

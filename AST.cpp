@@ -16,24 +16,60 @@ Register mipsMove(ofstream & mipsFile, Register reg1, Register reg2);
 *       MIPS PARA A Program
 */
 void Program::mipsProgram(ofstream & mipsFile){
-	int i = 0;
+	MipsInstruction *mips_inst;
+
+	currentLabel = "begin";
+	mipsFile << "j main\n";
+	mips_inst = new MipsInstruction(currentLabel, "j", "main", "", "");
+	instructionList.push_back(mips_inst);
+
     for (std::list<Function*>::iterator it = this->functionsList.begin(); it != this->functionsList.end(); ++it) {
         mipsFile << (*it)->name << ":\n";
+        currentLabel = (*it)->name;
+        func_name = (*it)->name;
 
-        mipsFile << "addi $sp, $sp, -" << ((*it)->paramsList.size() * 4) << "\n";
-		for(std::list<FunctionParam*>::iterator it2 = (*it)->paramsList.begin(); it2 != (*it)->paramsList.end(); ++it2) {
-			mipsFile << "sw  $t" << i << ", "<< (i * 4) << "($sp)\n";
-			i++;
-		}
+        if((*it)->name != "main"){
+			mipsFile << "addi $sp, $sp, -" << (13 * 4) << "\n";
+
+			mips_inst = new MipsInstruction(currentLabel, "addi", "$sp", "$sp", "-"+to_string(13*4));
+			instructionList.push_back(mips_inst);
+
+			for(int i = 0; i < 13; i++) {
+				if(i<=7){
+					mipsFile << "sw  $t" << i << ", "<< (i * 4) << "($sp)\n";
+					mips_inst = new MipsInstruction(currentLabel, "sw", "$t"+to_string(i), to_string((i * 4)) + "($sp)", "");
+					instructionList.push_back(mips_inst);
+				}
+				else if(i==8){
+					mipsFile << "sw  $a0, "<< (i * 4) << "($sp)\n";
+					mips_inst = new MipsInstruction(currentLabel, "sw", "$a0", to_string((i * 4)) + "($sp)", "");
+					instructionList.push_back(mips_inst);
+				}
+				else if(i==9){
+					mipsFile << "sw  $a1, "<< (i * 4) << "($sp)\n";
+					mips_inst = new MipsInstruction(currentLabel, "sw", "$a1", to_string((i * 4)) + "($sp)", "");
+					instructionList.push_back(mips_inst);
+				}
+				else if(i==10){
+					mipsFile << "sw  $a2, "<< (i * 4) << "($sp)\n";
+					mips_inst = new MipsInstruction(currentLabel, "sw", "$a2", to_string((i * 4)) + "($sp)", "");
+					instructionList.push_back(mips_inst);
+				}
+				else if(i==11){
+					mipsFile << "sw  $a3, "<< (i * 4) << "($sp)\n";
+					mips_inst = new MipsInstruction(currentLabel, "sw", "$a3", to_string((i * 4)) + "($sp)", "");
+					instructionList.push_back(mips_inst);
+				}
+				else {
+					mipsFile << "sw  $ra, "<< (i * 4) << "($sp)\n";
+					mips_inst = new MipsInstruction(currentLabel, "sw", "$ra", to_string((i * 4)) + "($sp)", "");
+					instructionList.push_back(mips_inst);
+				}
+			}
+        }
 
     	(*it)->mipsFunction(mipsFile);
 
-        i = 0;
-		for(std::list<FunctionParam*>::iterator it2 = (*it)->paramsList.begin(); it2 != (*it)->paramsList.end(); ++it2) {
-			mipsFile << "lw  $t" << i << ", "<< (i * 4) << "($sp)\n";
-			i++;
-		}
-        mipsFile << "addi $sp, $sp, " << ((*it)->paramsList.size() * 4) << "\n";
     }
 
     //Mips para a declaração de string para o scanf e printf
@@ -42,10 +78,30 @@ void Program::mipsProgram(ofstream & mipsFile){
     }
 
     //Mips para a declaração de floats e doubles
-    for (std::list<DataLabel*>::iterator it = dataLabelList.begin(); it != dataLabelList.end(); ++it) {
-        (*it)->mipsDataLabel(mipsFile);
-    }
+//    for (std::list<DataLabel*>::iterator it = dataLabelList.begin(); it != dataLabelList.end(); ++it) {
+//        (*it)->mipsDataLabel(mipsFile);
+//    }
 }
+
+
+void Program::mips(){
+	string label;
+    //Mips para a declaração de string para o scanf e printf
+    for (std::list<StringsLabel*>::iterator it = stringsLabelList.begin(); it != stringsLabelList.end(); ++it) {
+        (*it)->mips();
+    }
+
+    label = "";
+    for (std::list<MipsInstruction*>::iterator it = instructionList.begin(); it != instructionList.end(); ++it) {
+    	if((*it)->label != label){
+        	cout << (*it)->label << ":\n";
+        	label = (*it)->label;
+    	}
+    	(*it)->mips();
+    }
+
+}
+
 
 
 /*
@@ -156,7 +212,7 @@ Register Variable::mipsVariableVector(ofstream & mipsFile, string funcName){
 */
 Register CallFunction::mipsCallFunction(ofstream & mipsFile, string funcName){
     Register reg;
-    int sp_size = this->params.size(), i = 0;
+    int sp_size = this->params.size(), i = 1;
     //Minimal Munch
     MipsInstruction *mips_inst;
     if(this->params.size() <= 4) { //Coloca nos registradores $a
@@ -241,15 +297,14 @@ void Assignment::mipsAssignment(ofstream & mipsFile, int label, string funcName)
     }
     else if(this->assignObject->className == "CALLFUNCTION") {
         CallFunction *c = static_cast<CallFunction*>(this->assignObject->statementClass);
-        c->mipsCallFunction(mipsFile, func_name);
-        reg.name = "$v0"; reg.type = c->callfunc_type;
+        reg = c->mipsCallFunction(mipsFile, func_name);
     }
 
-    if(this->variable->dimension_size.size() == 1) {
-    	if(reg.tree == "VECTOR") {
+    if(this->variable->dimension_size.size() == 1) { //Atribuição que usa vetores
+    	if(reg.tree == "VECTOR") { //Move
     		reg2 = this->variable->mipsVariableVector(mipsFile, funcName);
     		reg = mipsMove(mipsFile, reg2, reg);
-    	} else {
+    	} else { //Store
     		reg2 = this->variable->mipsVariableVector(mipsFile, funcName);
     		reg = mipsStore(mipsFile, reg2, reg);
     	}
@@ -439,7 +494,7 @@ void IF::mipsIF(ofstream & mipsFile, int label, string funcName){
     string labelEnd = "EndIF" + to_string(label) +  funcName;
     MipsInstruction *mips_inst;
 
-    if(this->statementListElse->statement.size() > 0){
+    if(this->statementListElse != NULL){
         //Condicional
         this->condExp->mipsBOCBoolCondicional(mipsFile, labelThen, labelElse);
 
@@ -459,15 +514,16 @@ void IF::mipsIF(ofstream & mipsFile, int label, string funcName){
         currentLabel = labelElse;
 
         this->statementListElse->mipsStatement(mipsFile, label+2, funcName);
-
     }
     else {
         //Condicional
         this->condExp->mipsBOCBoolCondicional(mipsFile, labelThen, labelEnd);
         //corpo then
+        mipsFile << labelThen << ":\n";
+        currentLabel = labelThen;
+        this->statementListThen->mipsStatement(mipsFile, label+1, funcName);
     }
 
-    this->statementListThen->mipsStatement(mipsFile, label+1, funcName);
     mipsFile << labelEnd << ":\n";
     currentLabel = labelEnd;
 }
@@ -558,8 +614,7 @@ void Printf::mipsPrintf(ofstream & mipsFile, int label, string funcName){
 			}
 			else if((*it)->className == "CALLFUNCTION") {
 				CallFunction *c = static_cast<CallFunction*>((*it)->statementClass);
-				c->mipsCallFunction(mipsFile, func_name);
-				reg.name = "$v0"; reg.type = c->callfunc_type;
+				reg = c->mipsCallFunction(mipsFile, func_name);
 			}
 
 			if(reg.type == "INT") {
@@ -567,8 +622,8 @@ void Printf::mipsPrintf(ofstream & mipsFile, int label, string funcName){
 				mips_inst = new MipsInstruction(currentLabel, "li", "$v0", "1", "");
 				instructionList.push_back(mips_inst);
 
-				mipsFile << "la $a0, " << reg.name <<"\n";
-				mips_inst = new MipsInstruction(currentLabel, "la", "$a0", reg.name, "");
+				mipsFile << "move $a0, " << reg.name <<"\n";
+				mips_inst = new MipsInstruction(currentLabel, "move", "$a0", reg.name, "");
 				instructionList.push_back(mips_inst);
 
 				mipsFile << "syscall\n";
@@ -642,9 +697,55 @@ void Return::mipsReturn(ofstream & mipsFile){
     mips_inst = new MipsInstruction(currentLabel, "move", "$v0", reg.name, "");
     instructionList.push_back(mips_inst);
 
-    mipsFile << "jr $ra\n";
-    mips_inst = new MipsInstruction(currentLabel, "jr", "$ra", "", "");
-    instructionList.push_back(mips_inst);
+    if(func_name != "main"){
+		for(int i = 0; i < 13; i++) {
+			if(i<=7){
+				mipsFile << "lw  $t" << i << ", "<< (i * 4) << "($sp)\n";
+				mips_inst = new MipsInstruction(currentLabel, "lw", "$t"+to_string(i), to_string((i * 4)) + "($sp)", "");
+				instructionList.push_back(mips_inst);
+			}
+			else if(i==8){
+				mipsFile << "lw  $a0, "<< (i * 4) << "($sp)\n";
+				mips_inst = new MipsInstruction(currentLabel, "lw", "$a0", to_string((i * 4)) + "($sp)", "");
+				instructionList.push_back(mips_inst);
+			}
+			else if(i==9){
+				mipsFile << "lw  $a1, "<< (i * 4) << "($sp)\n";
+				mips_inst = new MipsInstruction(currentLabel, "lw", "$a1", to_string((i * 4)) + "($sp)", "");
+				instructionList.push_back(mips_inst);
+			}
+			else if(i==10){
+				mipsFile << "lw  $a2, "<< (i * 4) << "($sp)\n";
+				mips_inst = new MipsInstruction(currentLabel, "lw", "$a2", to_string((i * 4)) + "($sp)", "");
+				instructionList.push_back(mips_inst);
+			}
+			else if(i==11){
+				mipsFile << "lw  $a3, "<< (i * 4) << "($sp)\n";
+				mips_inst = new MipsInstruction(currentLabel, "lw", "$a3", to_string((i * 4)) + "($sp)", "");
+				instructionList.push_back(mips_inst);
+			}
+			else {
+				mipsFile << "lw  $ra, "<< (i * 4) << "($sp)\n";
+				mips_inst = new MipsInstruction(currentLabel, "lw", "$ra", to_string((i * 4)) + "($sp)", "");
+				instructionList.push_back(mips_inst);
+			}
+		}
+
+		mipsFile << "addi $sp, $sp, " << (13 * 4) << "\n";
+		mips_inst = new MipsInstruction(currentLabel, "addi", "$sp", "$sp", to_string(13*4));
+		instructionList.push_back(mips_inst);
+
+		mipsFile << "jr $ra\n";
+		mips_inst = new MipsInstruction(currentLabel, "jr", "$ra", "", "");
+		instructionList.push_back(mips_inst);
+    } else {
+    	mipsFile << "li $v0, 10\n";
+    	mipsFile << "syscall\n";
+		mips_inst = new MipsInstruction(currentLabel, "li", "$v0", "10", "");
+		instructionList.push_back(mips_inst);
+		mips_inst = new MipsInstruction(currentLabel, "syscall", "", "", "");
+		instructionList.push_back(mips_inst);
+    }
 }
 
 /*
@@ -696,14 +797,9 @@ Register mipsADDIConstant(ofstream & mipsFile, ASTObject *ast_obj){
     else if(ast_obj->className == "CALLFUNCTION") {
         CallFunction *aux = static_cast<CallFunction*>(ast_obj->statementClass);
         
-        aux->mipsCallFunction(mipsFile, func_name);
+        r = aux->mipsCallFunction(mipsFile, func_name);
         if(aux->callfunc_type == "INT") {
-            mipsFile << "move R" << to_string(indexLabel) << ", $v0\n";
-            mips_inst = new MipsInstruction(currentLabel, "move", "R" + to_string(indexLabel), "$v0", "");
-            instructionList.push_back(mips_inst);
-
-            r.name = "R" + to_string(indexLabel);
-            r.type = "INT"; r.tree = "CONSTANT";
+            r.tree = "CONSTANT";
         }
     }
 

@@ -31,9 +31,9 @@ class CallFunction;
 class Function;
 class Variable;
 class Assignment;
-class Program;
 class StringsLabel;
 class DataLabel;
+class Program;
 class MipsInstruction;
 
 extern list<MipsInstruction*> instructionList;
@@ -49,6 +49,7 @@ class Program {
             symbolTable = new HashTable(90);
         };
         void mipsProgram(ofstream & mipsFile);
+        void mips();
 };
 
 class FunctionParam{
@@ -279,6 +280,10 @@ class StringsLabel{
             mipsFile << this->label << ": ";
             mipsFile << ".asciiz " << "\"" << this->message << "\"\n";
         };
+        void mips() {
+            cout << this->label << ": ";
+            cout << ".asciiz " << "\"" << this->message << "\"\n";
+        };
 };
 
 class DataLabel{
@@ -305,6 +310,14 @@ class MipsInstruction{
             this->register1= register1;
             this->register2= register2;
             this->register3= register3;
+        };
+        void mips() {
+        	cout << "  " << this->instruction << " " << this->register1;
+        	if(this->register2 != "")
+        		cout << ", " << this->register2;
+        	if(this->register3 != "")
+        		cout << ", " << this->register3;
+        	cout << "\n";
         };
 };
 
