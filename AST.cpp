@@ -775,8 +775,8 @@ Register mipsADDIConstant(ofstream & mipsFile, ASTObject *ast_obj){
         	return r;
         };
         if(aux->var_type == "INT"){
-            mipsFile << "addi R" << to_string(indexLabel) << ", $zero, " << aux->name << "\n";
-            mips_inst = new MipsInstruction(currentLabel, func_name, "addi", "R" + to_string(indexLabel), "$zero", aux->name);
+            mipsFile << "add R" << to_string(indexLabel) << ", $zero, " << aux->name << "\n";
+            mips_inst = new MipsInstruction(currentLabel, func_name, "add", "R" + to_string(indexLabel), "$zero", aux->name);
             instructionList.push_back(mips_inst);
 
             r.name = "R" + to_string(indexLabel);
@@ -969,3 +969,109 @@ Register Expression::mipsExpression(ofstream & mipsFile){
 
     return reg;
 }
+
+
+Register Program::allocateReg(string label, string funcName, std::list<MipsInstruction*>::iterator it) {
+	Register reg;
+	MipsInstruction *mips_inst;
+
+	reg.name = "R" + to_string(indexLabel); reg.type = "INT";
+
+
+    mips_inst = new MipsInstruction(label, funcName, "li", "$a0", "4",  "");
+    instructionList.insert(it, mips_inst);
+
+    mips_inst = new MipsInstruction(label, funcName, "li", "$v0", "9",  "");
+    instructionList.insert(it, mips_inst);
+
+    mips_inst = new MipsInstruction(label, funcName, "syscall", "", "",  "");
+    instructionList.insert(it, mips_inst);
+
+    if(funcName != "main"){
+		mips_inst = new MipsInstruction(label, funcName, "lw", "$a0", "32($sp)",  "");
+		instructionList.insert(it, mips_inst);
+    }
+
+    mips_inst = new MipsInstruction(label, funcName, "move", reg.name, "32($sp)",  "");
+    instructionList.insert(it, mips_inst);
+
+    indexLabel++;
+    return reg;
+}
+
+void Program::storeReg(string reg1Name, string reg2Name,string label, string funcName, int index){
+	MipsInstruction *mips_inst;
+	list<MipsInstruction*>::iterator it = instructionList.begin();
+	for(int i =0; i < index; i++)
+		it++;
+
+    mips_inst = new MipsInstruction(label, funcName, "sw", reg2Name, "(" + reg1Name + ")",  "");
+    instructionList.insert(it, mips_inst);
+}
+
+void Program::loadReg(string reg1Name, string reg2Name,string label, string funcName, int index){
+	MipsInstruction *mips_inst;
+	list<MipsInstruction*>::iterator it = instructionList.begin();
+	for(int i =0; i <= index; i++)
+		it++;
+
+    mips_inst = new MipsInstruction(label, funcName, "lw", reg2Name, "(" + reg1Name + ")",  "");
+    instructionList.insert(it, mips_inst);
+}
+
+void Program::allocateRegister(string funcName, string reg){
+	int index = 0;
+	bool start = true;
+	Register reg_aux;
+
+	std::list<MipsInstruction*>::iterator it = instructionList.begin();
+    while(it != instructionList.end()) {
+    	if((*it)->function == funcName) {
+    		if(start && ( (*it)->register1 == reg || (*it)->register2 == reg || (*it)->register3 == reg ) ) {
+    			reg_aux = this->allocateReg((*it)->label, funcName, it);
+    			if(funcName != "main")  index = index + 5;
+    			else index = index + 4;
+    			start = false;
+    		}
+
+    		if((*it)->register1 == reg || (*it)->register2 == reg || (*it)->register3 == reg) {
+    			if((*it)->register1 == reg && ((*it)->instruction == "add" || (*it)->instruction == "sub" ||
+    			   (*it)->instruction == "mult" || (*it)->instruction == "div" ||
+    			   (*it)->instruction == "addi" || (*it)->instruction == "subi" ||
+				   (*it)->instruction == "li" || (*it)->instruction == "la" ||
+				   (*it)->instruction == "move")) {
+    				this->storeReg(reg_aux.name, reg, (*it)->label, funcName, index);
+    			}
+      			if((*it)->register2 == reg && ((*it)->instruction == "add" || (*it)->instruction == "sub" ||
+        			   (*it)->instruction == "mult" || (*it)->instruction == "div" ||
+        			   (*it)->instruction == "addi" || (*it)->instruction == "subi" ||
+    				   (*it)->instruction == "li" || (*it)->instruction == "la" ||
+					   (*it)->instruction == "move")){
+        				this->loadReg(reg_aux.name, reg, (*it)->label, funcName, index);
+        		}
+      			if((*it)->register2 == reg && ((*it)->instruction == "add" || (*it)->instruction == "sub" ||
+        			   (*it)->instruction == "mult" || (*it)->instruction == "div" ||
+        			   (*it)->instruction == "addi" || (*it)->instruction == "subi" ||
+    				   (*it)->instruction == "li" || (*it)->instruction == "la" ||
+					   (*it)->instruction == "move")){
+        				this->loadReg(reg_aux.name, reg, (*it)->label, funcName, index);
+        		}
+
+      			if(( (*it)->register1 == reg || (*it)->register2 == reg || (*it)->register3 == reg) &&
+      			 ((*it)->instruction == "bgt" || (*it)->instruction == "bge" ||
+        	      (*it)->instruction == "blt" || (*it)->instruction == "ble" ||
+    		      (*it)->instruction == "bne" || (*it)->instruction == "beq" )){
+        			this->loadReg(reg_aux.name, reg, (*it)->label, funcName, index);
+        		}
+
+    		}
+    	}
+    	index++;
+    	it++;
+    }
+
+}
+
+
+
+

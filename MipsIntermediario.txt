@@ -14,7 +14,7 @@ sw  $a1, 36($sp)
 sw  $a2, 40($sp)
 sw  $a3, 44($sp)
 sw  $ra, 48($sp)
-addi R0, $zero, n
+add R0, $zero, n
 addi R1, $zero, 0
 bgt R0, R1, EndIF0fatorial
 ThenIF0fatorial:
@@ -36,7 +36,7 @@ lw  $ra, 48($sp)
 addi $sp, $sp, 52
 jr $ra
 EndIF0fatorial:
-addi R3, $zero, n
+add R3, $zero, n
 addi R4, $zero, 1
 bnq R3, R4, ElseIF1fatorial
 ThenIF1fatorial:
@@ -59,8 +59,8 @@ addi $sp, $sp, 52
 jr $ra
 j EndIF1fatorial
 ElseIF1fatorial:
-addi R6, $zero, n
-addi R7, $zero, n
+add R6, $zero, n
+add R7, $zero, n
 addi R8, $zero, 1
 sub R9, R7, R8
 move $a0, R9
@@ -89,21 +89,21 @@ main:
 li $v0, 4
 la $a0, Printf0main
 syscall
-addi R13, $zero, n
+add R13, $zero, n
 li $v0, 5
 syscall
 move R13, $v0
 li $v0, 4
 la $a0, Printf1main
 syscall
-addi R14, $zero, n
+add R14, $zero, n
 li $v0, 1
 move $a0, R14
 syscall
 li $v0, 4
 la $a0, Printf3main
 syscall
-addi R15, $zero, n
+add R15, $zero, n
 move $a0, R15
 jal fatorial
 move R16, $v0

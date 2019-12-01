@@ -417,7 +417,8 @@ int main() {
    p->mipsProgram(mipsFile);
 
    mipsFile.close();
-
+//   p->mips();
+   p->allocateRegister("fatorial", "R0");
    p->mips();
 
    return 0;

@@ -33,8 +33,8 @@ class Variable;
 class Assignment;
 class StringsLabel;
 class DataLabel;
-class Program;
 class MipsInstruction;
+class Program;
 
 extern list<MipsInstruction*> instructionList;
 extern list<StringsLabel*> stringsLabelList;
@@ -50,6 +50,10 @@ class Program {
         };
         void mipsProgram(ofstream & mipsFile);
         void mips();
+        void allocateRegister(string funcName, string reg);
+        Register allocateReg(string label, string funcName, std::list<MipsInstruction*>::iterator it);
+        void storeReg(string reg1Name, string reg2Name,string label, string funcName, int index);
+        void loadReg(string reg1Name, string reg2Name,string label, string funcName, int index);
 };
 
 class FunctionParam{
@@ -314,13 +318,16 @@ class MipsInstruction{
             this->register3= register3;
         };
         void mips() {
-        	cout << "  " << this->instruction << " " << this->register1;
+        	cout << "  " << this->instruction;
+        	if(this->register1 != "")
+        		cout << " " << this->register1;
         	if(this->register2 != "")
         		cout << ", " << this->register2;
         	if(this->register3 != "")
         		cout << ", " << this->register3;
         	cout << "\n";
         };
+
 };
 
 #endif
