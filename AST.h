@@ -300,12 +300,14 @@ class DataLabel{
 class MipsInstruction{
     public:
         string label;
+        string function;
         string instruction;
         string register1;
         string register2;
         string register3;
-        MipsInstruction(string label, string instruction, string register1, string register2, string register3){
+        MipsInstruction(string label, string function, string instruction, string register1, string register2, string register3){
             this->label = label;
+            this->function = function;
             this->instruction= instruction;
             this->register1= register1;
             this->register2= register2;
