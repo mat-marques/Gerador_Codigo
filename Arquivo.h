@@ -4,12 +4,13 @@
 #include <iostream>
 #include <vector>
 #include <string.h>
+#include "AST.h"
 
 using namespace std;
 
 class Arquivo{
     public:
-        void readFile(vector<string> file_input);
+        Program *readFile(vector<string> file_input);
         Arquivo(vector<string> file_input);
 };
 

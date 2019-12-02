@@ -17,9 +17,6 @@ FUNCTION: main
 PRINTF("Entre com um valor inteiro:");
 SCANF("%d",&(n));
 PRINTF("O fatorial de %d eh: %d\n",n,fatorial(n));
+WHILE(!=(+(c,2),2),=(c,a),RETURN(0));
 RETURN(0)
-
-ts(>>(m,n))
-
-
 END_FUNCTION

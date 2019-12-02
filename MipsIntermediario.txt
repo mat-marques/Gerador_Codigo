@@ -114,7 +114,7 @@ li $v0, 4
 la $a0, Printf5main
 syscall
 add R17, $zero, n
-nor R18, R17, R17
+nor R18, R17, $zero
 move n, R18
 li $v0, 10
 syscall

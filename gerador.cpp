@@ -6,24 +6,20 @@
 using namespace std;
 
 int main() {
-  string input;
+//	ofstream mipsFile;
+//    mipsFile.open ("MipsIntermediario.txt");
+   string input;
    vector<string> file_input;
    //Leitura da entrada
-   while(getline(cin, input)) {
-      file_input.push_back(input);
-   }
-   Arquivo *file = new Arquivo(file_input);
-  /*
-	ofstream mipsFile;
-    mipsFile.open ("MipsIntermediario.txt");
-//   string input;
-//   vector<string> file_input;
-//   //Leitura da entrada
 //   while(getline(cin, input)) {
 //      file_input.push_back(input);
 //   }
-//   Arquivo *file = new Arquivo(file_input);
+   file_input.push_back("WHILE(&&(!=(+(c,2),2),!=(+(c,2),2)),=(c,a);RETURN(0));");
+   file_input.push_back("FOR(=(i,1),<(i,10),=(i,+(i,1)),RETURN(0))");
+   //file_input.push_back("DO_WHILE(=(c,a);RETURN(0),!=(+(c,2),2))");
+   Arquivo *file = new Arquivo(file_input);
 
+    /*
    Program *p = new Program();
 
 
@@ -491,8 +487,8 @@ int main() {
    mipsFile.close();
 //   p->mips();
    p->allocateRegister("fatorial", "R0");
-   p->mips();*/
-
+   p->mips();
+*/
    return 0;
 
 }

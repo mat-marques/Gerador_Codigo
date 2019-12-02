@@ -881,7 +881,45 @@ Register mipsADDIOperations(ofstream & mipsFile, string op, Register reg1, Regis
             instructionList.push_back(mips_inst);
         }
     } 
+    else if(reg1.type == "INT" && reg2.type == ""){
+        if(op == "+") {
+            mipsFile << "add R" << to_string(indexLabel) << ", " << reg1.name << ", $zero\n";
+            r.name = "R" + to_string(indexLabel); r.type = "INT"; r.tree = "OPERATION";
 
+            mips_inst = new MipsInstruction(currentLabel, func_name, "add", "R" + to_string(indexLabel), reg1.name, "$zero");
+            instructionList.push_back(mips_inst);
+        } else if(op == "-") {
+            mipsFile << "sub R" << to_string(indexLabel) << ",$zero, " << reg1.name << "\n";
+            r.name = "R" + to_string(indexLabel); r.type = "INT"; r.tree = "OPERATION";
+
+            mips_inst = new MipsInstruction(currentLabel, func_name, "sub", "R" + to_string(indexLabel), "$zero", reg1.name);
+            instructionList.push_back(mips_inst);
+        }
+        else if(op == "~" || op == "!") {
+            mipsFile << "nor R" << to_string(indexLabel) << ", "<< reg1.name << ", $zero\n";
+            r.name = "R" + to_string(indexLabel); r.type = "INT"; r.tree = "OPERATION";
+
+            mips_inst = new MipsInstruction(currentLabel, func_name, "nor", r.name, reg1.name, "$zero");
+            instructionList.push_back(mips_inst);
+        }
+        else if(op == "&") {
+            mipsFile << "la R" << to_string(indexLabel) << ", "<< reg1.name << "\n";
+            r.name = "R" + to_string(indexLabel); r.type = "INT"; r.tree = "OPERATION";
+
+            mips_inst = new MipsInstruction(currentLabel, func_name, "la", r.name, reg1.name, "");
+            instructionList.push_back(mips_inst);
+        }
+        else if(op == "*") {
+            mipsFile << "la R" << to_string(indexLabel) << ", "<< reg1.name << "\n";
+            mipsFile << "lw R" << to_string(indexLabel) << ", (R"<< to_string(indexLabel) << ")\n";
+            r.name = "R" + to_string(indexLabel); r.type = "INT"; r.tree = "OPERATION";
+
+            mips_inst = new MipsInstruction(currentLabel, func_name, "la", r.name, reg1.name, "");
+            instructionList.push_back(mips_inst);
+            mips_inst = new MipsInstruction(currentLabel, func_name, "lw", r.name, r.name, "");
+            instructionList.push_back(mips_inst);
+        }
+    }
     indexLabel++;
     return r;
 }
@@ -1004,7 +1042,7 @@ Register Expression::mipsExpression(ofstream & mipsFile){
         reg = mipsADDIOperations(mipsFile, this->op, reg1, reg2);
     }
     else if(reg1.tree == "CONSTANT" || reg1.tree == "LOAD") {
-    	reg = mipsADDIOperations(mipsFile, this->op, reg1, reg1);
+    	reg = mipsADDIOperations(mipsFile, this->op, reg1, reg2);
     }
 
     return reg;
@@ -1032,7 +1070,7 @@ Register Program::allocateReg(string label, string funcName, std::list<MipsInstr
 		instructionList.insert(it, mips_inst);
     }
 
-    mips_inst = new MipsInstruction(label, funcName, "move", reg.name, "32($sp)",  "");
+    mips_inst = new MipsInstruction(label, funcName, "move", reg.name, "$v0",  "");
     instructionList.insert(it, mips_inst);
 
     indexLabel++;
