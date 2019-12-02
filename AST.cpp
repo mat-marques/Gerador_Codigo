@@ -70,6 +70,14 @@ void Program::mipsProgram(ofstream & mipsFile){
 
     	(*it)->mipsFunction(mipsFile);
 
+    	if((*it)->name == "main") {
+        	mipsFile << "li $v0, 10\n";
+        	mipsFile << "syscall\n";
+    		mips_inst = new MipsInstruction(currentLabel, func_name, "li", "$v0", "10", "");
+    		instructionList.push_back(mips_inst);
+    		mips_inst = new MipsInstruction(currentLabel, func_name, "syscall", "", "", "");
+    		instructionList.push_back(mips_inst);
+    	}
     }
 
     //Mips para a declaração de string para o scanf e printf
@@ -738,13 +746,6 @@ void Return::mipsReturn(ofstream & mipsFile){
 		mipsFile << "jr $ra\n";
 		mips_inst = new MipsInstruction(currentLabel, func_name, "jr", "$ra", "", "");
 		instructionList.push_back(mips_inst);
-    } else {
-    	mipsFile << "li $v0, 10\n";
-    	mipsFile << "syscall\n";
-		mips_inst = new MipsInstruction(currentLabel, func_name, "li", "$v0", "10", "");
-		instructionList.push_back(mips_inst);
-		mips_inst = new MipsInstruction(currentLabel, func_name, "syscall", "", "", "");
-		instructionList.push_back(mips_inst);
     }
 }
 
@@ -765,7 +766,7 @@ Register mipsADDIConstant(ofstream & mipsFile, ASTObject *ast_obj){
             instructionList.push_back(mips_inst);
 
             r.name = "R" + to_string(indexLabel);
-            r.type = "INT"; r.tree = "CONSTANT";
+            r.type = "INT"; r.tree = "CONSTANT"; r.value = aux->value;
         }
     }
     else if(ast_obj->className == "VARIABLE") {
@@ -791,7 +792,7 @@ Register mipsADDIConstant(ofstream & mipsFile, ASTObject *ast_obj){
             instructionList.push_back(mips_inst);
 
             r.name = "R" + to_string(indexLabel);
-            r.type = "INT"; r.tree = "CONSTANT";
+            r.type = "INT"; r.tree = "CONSTANT"; r.value = aux->value;
         }
     }
     else if(ast_obj->className == "CALLFUNCTION") {
@@ -841,6 +842,42 @@ Register mipsADDIOperations(ofstream & mipsFile, string op, Register reg1, Regis
             mips_inst = new MipsInstruction(currentLabel, func_name, "div", reg1.name, reg2.name, "");
             instructionList.push_back(mips_inst);
             mips_inst = new MipsInstruction(currentLabel, func_name, "mfhi", "R" + to_string(indexLabel), "", "");
+            instructionList.push_back(mips_inst);
+        } else if(op == "&") {
+            mipsFile << "and R" << to_string(indexLabel) << ", "<< reg1.name << ", " << reg2.name << "\n";
+            r.name = "R" + to_string(indexLabel); r.type = "INT"; r.tree = "OPERATION";
+
+            mips_inst = new MipsInstruction(currentLabel, func_name, "and", r.name, reg1.name, reg2.name);
+            instructionList.push_back(mips_inst);
+        } else if(op == "|") {
+            mipsFile << "or R" << to_string(indexLabel) << ", "<< reg1.name << ", " << reg2.name << "\n";
+            r.name = "R" + to_string(indexLabel); r.type = "INT"; r.tree = "OPERATION";
+
+            mips_inst = new MipsInstruction(currentLabel, func_name, "or", r.name, reg1.name, reg2.name);
+            instructionList.push_back(mips_inst);
+        } else if(op == "^") {
+            mipsFile << "xor R" << to_string(indexLabel) << ", "<< reg1.name << ", " << reg2.name << "\n";
+            r.name = "R" + to_string(indexLabel); r.type = "INT"; r.tree = "OPERATION";
+
+            mips_inst = new MipsInstruction(currentLabel, func_name, "xor", r.name, reg1.name, reg2.name);
+            instructionList.push_back(mips_inst);
+        } else if(op == "~") {
+            mipsFile << "nor R" << to_string(indexLabel) << ", "<< reg1.name << ", " << reg2.name << "\n";
+            r.name = "R" + to_string(indexLabel); r.type = "INT"; r.tree = "OPERATION";
+
+            mips_inst = new MipsInstruction(currentLabel, func_name, "nor", r.name, reg1.name, reg2.name);
+            instructionList.push_back(mips_inst);
+        } else if(op == "<<") {
+            mipsFile << "sll R" << to_string(indexLabel) << ", "<< reg1.name << ", " << reg2.value << "\n";
+            r.name = "R" + to_string(indexLabel); r.type = "INT"; r.tree = "OPERATION";
+
+            mips_inst = new MipsInstruction(currentLabel, func_name, "sll", r.name, reg1.name, reg2.value);
+            instructionList.push_back(mips_inst);
+        } else if(op == ">>") {
+            mipsFile << "srl R" << to_string(indexLabel) << ", "<< reg1.name << ", " << reg2.value << "\n";
+            r.name = "R" + to_string(indexLabel); r.type = "INT"; r.tree = "OPERATION";
+
+            mips_inst = new MipsInstruction(currentLabel, func_name, "srl", r.name, reg1.name, reg2.value);
             instructionList.push_back(mips_inst);
         }
     } 
@@ -966,6 +1003,9 @@ Register Expression::mipsExpression(ofstream & mipsFile){
     {
         reg = mipsADDIOperations(mipsFile, this->op, reg1, reg2);
     }
+    else if(reg1.tree == "CONSTANT" || reg1.tree == "LOAD") {
+    	reg = mipsADDIOperations(mipsFile, this->op, reg1, reg1);
+    }
 
     return reg;
 }
@@ -1039,7 +1079,10 @@ void Program::allocateRegister(string funcName, string reg){
     			   (*it)->instruction == "mult" || (*it)->instruction == "div" ||
     			   (*it)->instruction == "addi" || (*it)->instruction == "subi" ||
 				   (*it)->instruction == "li" || (*it)->instruction == "la" ||
-				   (*it)->instruction == "move")) {
+				   (*it)->instruction == "move" || (*it)->instruction == "and" ||
+				   (*it)->instruction == "or" || (*it)->instruction == "xor" ||
+				   (*it)->instruction == "nor" || (*it)->instruction == "sll" ||
+				   (*it)->instruction == "slr")) {
     				this->storeReg(reg_aux.name, reg, (*it)->label, funcName, index+1);
     				index++;
     			}
@@ -1047,7 +1090,10 @@ void Program::allocateRegister(string funcName, string reg){
         			   (*it)->instruction == "mult" || (*it)->instruction == "div" ||
         			   (*it)->instruction == "addi" || (*it)->instruction == "subi" ||
     				   (*it)->instruction == "li" || (*it)->instruction == "la" ||
-					   (*it)->instruction == "move")){
+					   (*it)->instruction == "move" || (*it)->instruction == "and" ||
+					   (*it)->instruction == "or" || (*it)->instruction == "xor" ||
+					   (*it)->instruction == "nor" || (*it)->instruction == "sll" ||
+					   (*it)->instruction == "slr")){
         				this->loadReg(reg_aux.name, reg, (*it)->label, funcName, index-1);
         				index++;
         		}
@@ -1055,7 +1101,10 @@ void Program::allocateRegister(string funcName, string reg){
         			   (*it)->instruction == "mult" || (*it)->instruction == "div" ||
         			   (*it)->instruction == "addi" || (*it)->instruction == "subi" ||
     				   (*it)->instruction == "li" || (*it)->instruction == "la" ||
-					   (*it)->instruction == "move")){
+					   (*it)->instruction == "move" || (*it)->instruction == "and" ||
+					   (*it)->instruction == "or" || (*it)->instruction == "xor" ||
+					   (*it)->instruction == "nor" || (*it)->instruction == "sll" ||
+					   (*it)->instruction == "slr")){
         				this->loadReg(reg_aux.name, reg, (*it)->label, funcName, index-1);
         				index++;
         		}

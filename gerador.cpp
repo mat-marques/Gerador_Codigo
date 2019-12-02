@@ -188,12 +188,76 @@ int main() {
    ast_pf2->statementClass = static_cast<void*>(pf2);
    ast_pf2->className = "PRINTF";
 
+  Number *n1 = new Number();
+  Number *n2 = new Number();
+  Number *n3 = new Number();
+
+  n1->value = "10";
+  n1->number_type = "INT";
+  n2->value = "10";
+  n2->number_type = "INT";
+  n3->value = "10";
+  n3->number_type = "INT";
+
+  Assignment *assig = new Assignment();
+  assig->variable = var_if1;
+
+  ASTObject *ast_ex = new ASTObject();
+  ASTObject *ast_term1 = new ASTObject();
+  ASTObject *ast_term2 = new ASTObject();
+  ASTObject *ast_term3 = new ASTObject();
+  ASTObject *ast_term4 = new ASTObject();
+
+  Expression *ex = new Expression();
+  Expression *ex2 = new Expression();
+  Expression *ex3 = new Expression();
+  Expression *ex4 = new Expression();
+  Expression *ex5 = new Expression();
+  Expression *ex6 = new Expression();
+  Expression *ex7 = new Expression();
+
+  ex->op = "~";
+  ex->left = ex2;
+//  ex->right = ex3;
+  ex2->term = ast_term3;
+//  ex3->term = ast_term1;
+//  ex3->op = "+";
+//  ex3->left = ex4;
+//  ex3->right = ex5;
+//  ex4->term = ast_term2;
+//  ex5->op = "+";
+//  ex5->left = ex6;
+//  ex5->right = ex7;
+//  ex6->term = ast_term3;
+//  ex7->term = ast_term4;
+
+
+  ast_ex->statementClass = static_cast<void*>( ex );
+  ast_ex->className = "EXPRESSION";
+
+  ast_term1->statementClass = static_cast<void*>( n1 );
+  ast_term1->className = "NUMBER";
+  ast_term2->statementClass = static_cast<void*>( n2 );
+  ast_term2->className = "NUMBER";
+  ast_term3->statementClass = static_cast<void*>( var_if1 );
+  ast_term3->className = "VARIABLE";
+  ast_term4->statementClass = static_cast<void*>( n3 );
+  ast_term4->className = "NUMBER";
+
+  assig->assignObject = ast_ex;
+
+
+  ASTObject *ast_assig = new ASTObject();
+  ast_assig->statementClass = static_cast<void*>(assig);
+  ast_assig->className = "ASSIGNMENT";
+
 
    s_main->statement.push_back(ast_if1_l);
    s_main->statement.push_back(ast_pf);
    s_main->statement.push_back(ast_sf);
    s_main->statement.push_back(ast_pf2);
-   s_main->statement.push_back(ast_ret_if1);
+   s_main->statement.push_back(ast_assig);
+//   s_main->statement.push_back(ast_ret_if1);
    main_->statementList = s_main;
 
    

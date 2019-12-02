@@ -113,8 +113,9 @@ syscall
 li $v0, 4
 la $a0, Printf5main
 syscall
-addi R17, $zero, 0
-move $v0, R17
+add R17, $zero, n
+nor R18, R17, R17
+move n, R18
 li $v0, 10
 syscall
 Printf0main: .asciiz "Entre com um valor inteiro:"

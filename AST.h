@@ -260,6 +260,7 @@ class Register {
         string type = "";
         string vetor = "";
         string tree = "";
+        string value = "";
         Register(){};
 };
 
