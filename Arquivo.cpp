@@ -1062,6 +1062,26 @@ For *forParser(string line) {
 }
 
 
+Assignment *assignmentParser(string line){
+	Assignment *assign = new Assignment();
+    int i = 0;
+    string aux = "";
+    ASTObject *ex;
+    Expression *ex_l;
+    if(line[i] == '(') i++;
+
+    if(line[i] == '='){
+    	aux = splitExpression(line.substr(i, line.size()));
+    	ex = verifyExpression(aux, 0);
+    	assign->assignObject = ex;
+    	ex_l = static_cast<Expression*>(ex);
+    	assign->variable = static_cast<Variable*>(ex_l->term);
+    }
+
+    return assign;
+}
+
+
 string splitStatement(string line) {
     int i = 0;
     string value = "";
@@ -1098,9 +1118,8 @@ Statement *bodyStatements(string input) {
     while(true){
     	if(line.size() >= 2) aux = line.substr(0, 2);
         if(aux.compare("IF") == 0){
-            cout << "COMANDO IF: " << endl;
             aux = splitStatement(line);
-            ifParser(aux);
+            if_ = ifParser(aux);
 
             ast_obj->statementClass = static_cast<void*>(if_);
 			ast_obj->className = "IF";
@@ -1116,9 +1135,8 @@ Statement *bodyStatements(string input) {
 
         if(line.size() >= 6) aux = line.substr(0, 6);
         if(aux.compare("PRINTF") == 0){
-            cout << "COMANDO PRINTF: " << endl;
             aux = splitStatement(line);
-            printParser(aux);
+            printf_ = printParser(aux);
 
             ast_obj->statementClass = static_cast<void*>(printf_);
 			ast_obj->className = "PRINTF";
@@ -1134,9 +1152,8 @@ Statement *bodyStatements(string input) {
 
         if(line.size() >= 5) aux = line.substr(0, 5);
         if(aux.compare("SCANF") == 0){
-            cout << "COMANDO SCANF:" << endl;
             aux = splitStatement(line);
-            scanfParser(aux);
+            scanf_ = scanfParser(aux);
 
             ast_obj->statementClass = static_cast<void*>(scanf_);
 			ast_obj->className = "SCANF";
@@ -1152,10 +1169,8 @@ Statement *bodyStatements(string input) {
 
         if(line.size() >= 6) aux = line.substr(0, 6);
         if(aux.compare("RETURN") == 0){
-            cout << "COMANDO RETURN:" << endl;
             aux = splitStatement(line);
-            cout << aux << endl;
-            returnParser(aux);
+            return_ = returnParser(aux);
 
             ast_obj->statementClass = static_cast<void*>(return_);
 			ast_obj->className = "RETURN";
@@ -1171,9 +1186,8 @@ Statement *bodyStatements(string input) {
 
         if(line.size() >= 5) aux = line.substr(0, 5);
         if(aux.compare("WHILE") == 0){
-            cout << "COMANDO WHILE:" << endl;
             aux = splitStatement(line);
-            whileParser(aux);
+            while_ = whileParser(aux);
 
             ast_obj->statementClass = static_cast<void*>(while_);
 			ast_obj->className = "WHILE";
@@ -1189,8 +1203,9 @@ Statement *bodyStatements(string input) {
 
         if(line.size() >= 3) aux = line.substr(0, 3);
         if(aux.compare("FOR") == 0){
-            cout << "COMANDO FOR:" << endl;
             aux = splitStatement(line);
+
+            for_ = forParser(aux);
 
             ast_obj->statementClass = static_cast<void*>(for_);
 			ast_obj->className = "FOR";
@@ -1208,7 +1223,8 @@ Statement *bodyStatements(string input) {
         if(aux.compare("EXIT") == 0){
             cout << "COMANDO EXIT:" << endl;
             aux = splitStatement(line);
-            exitParser(aux);
+
+            exit_ = exitParser(aux);
 
             ast_obj->statementClass = static_cast<void*>(exit_);
 			ast_obj->className = "EXIT";
@@ -1224,8 +1240,9 @@ Statement *bodyStatements(string input) {
 
         if(line.size() >= 7) aux = line.substr(0, 7);
         if(aux.compare("DO_WHILE") == 0){
-            cout << "COMANDO DO_WHILE:" << endl;
             aux = splitStatement(line);
+
+            dowhile_ = dowhileParser(aux);
 
             ast_obj->statementClass = static_cast<void*>(dowhile_);
 			ast_obj->className = "DOWHILE";
@@ -1241,9 +1258,10 @@ Statement *bodyStatements(string input) {
 
         if(line.size() >= 1) aux = line.substr(0, 1);
         if(aux.compare("=") == 0){
-            cout << "COMANDO ASSIGNMENT:" << endl;
             aux = splitStatement(line);
-            cout << aux << endl;
+
+            assign = assignmentParser(aux);
+
 
             ast_obj->statementClass = static_cast<void*>(assign);
 			ast_obj->className = "ASSIGNMENT";
@@ -1407,7 +1425,7 @@ Program *Arquivo::readFile(vector<string> file_input){
                     cout << "COMANDO IF: " << endl;
                     aux.clear();
                     aux = line.substr(z, line.size());
-                    ifParser(aux);
+                    if_ = ifParser(aux);
 
                     ast_obj->statementClass = static_cast<void*>(if_);
                     ast_obj->className = "IF";
@@ -1418,7 +1436,7 @@ Program *Arquivo::readFile(vector<string> file_input){
                     cout << "COMANDO PRINTF: " << endl;
                     aux.clear();
                     aux = line.substr(z, line.size());
-                    printParser(aux);
+                    printf_ = printParser(aux);
 
                     ast_obj->statementClass = static_cast<void*>(printf_);
                     ast_obj->className = "PRINTF";
@@ -1429,7 +1447,7 @@ Program *Arquivo::readFile(vector<string> file_input){
                     cout << "COMANDO SCANF:" << endl;
                     aux.clear();
                     aux = line.substr(z, line.size());
-                    scanfParser(aux);
+                    scanf_ = scanfParser(aux);
 
                     ast_obj->statementClass = static_cast<void*>(scanf_);
                     ast_obj->className = "SCANF";
@@ -1440,7 +1458,7 @@ Program *Arquivo::readFile(vector<string> file_input){
                     cout << "COMANDO RETURN:" << endl;
                     aux.clear();
                     aux = line.substr(z, line.size());
-                    returnParser(aux);
+                    return_ = returnParser(aux);
 
                     ast_obj->statementClass = static_cast<void*>(return_);
                     ast_obj->className = "RETURN";
@@ -1451,7 +1469,7 @@ Program *Arquivo::readFile(vector<string> file_input){
                     cout << "COMANDO WHILE:" << endl;
                     aux.clear();
                     aux = line.substr(z, line.size());
-                    whileParser(aux);
+                    while_ = whileParser(aux);
 
                     ast_obj->statementClass = static_cast<void*>(while_);
                     ast_obj->className = "WHILE";
@@ -1462,7 +1480,7 @@ Program *Arquivo::readFile(vector<string> file_input){
                     cout << "COMANDO FOR:" << endl;
                     aux.clear();
                     aux = line.substr(z, line.size());
-                    forParser(aux);
+                    for_ = forParser(aux);
 
                     ast_obj->statementClass = static_cast<void*>(for_);
                     ast_obj->className = "FOR";
@@ -1473,7 +1491,7 @@ Program *Arquivo::readFile(vector<string> file_input){
                     cout << "COMANDO EXIT:" << endl;
                     aux.clear();
                     aux = line.substr(z, line.size());
-                    exitParser(aux);
+                    exit_ = exitParser(aux);
 
                     ast_obj->statementClass = static_cast<void*>(exit_);
                     ast_obj->className = "EXIT";
@@ -1484,13 +1502,24 @@ Program *Arquivo::readFile(vector<string> file_input){
                     cout << "COMANDO DO_WHILE:" << endl;
                     aux.clear();
                     aux = line.substr(z, line.size());
-                    dowhileParser(aux);
+                    dowhile_ = dowhileParser(aux);
 
                     ast_obj->statementClass = static_cast<void*>(dowhile_);
                     ast_obj->className = "DOWHILE";
 
                     function->statementList->statement.push_back(ast_obj);
                 }
+                if(aux.compare("=") == 0){
+                         cout << "ASSIGNMENT:" << endl;
+                         aux.clear();
+                         aux = line.substr(z, line.size());
+                         assign = assignmentParser(line);
+
+                         ast_obj->statementClass = static_cast<void*>(assign);
+                         ast_obj->className = "ASSIGNMENT";
+
+                         function->statementList->statement.push_back(ast_obj);
+				 }
                 if(aux.compare("ts") == 0){
                     cout << "expression:" << endl;
 
