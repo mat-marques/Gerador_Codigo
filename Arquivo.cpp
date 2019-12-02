@@ -29,6 +29,17 @@ int get_argumentIndex(char c, int argSize, int startIndex, string argument)
 	return -1;
 }
 
+int get_argumentIndexRev(char c, int startIndex, string argument)
+{
+    int i;
+	for(i = startIndex; i >= 0; i--)
+	{
+		if(argument[i] == c)
+			return i;
+	}
+	return -1;
+}
+
 string strtoupper(string str)
 {
     int leng=str.length();
@@ -130,15 +141,474 @@ void scanfParser(string line){
     }
 }
 
+string verifyExpression(string line, int s){
+    int n = line.size();
+    int i;
+    int j;
+    string token;
+    string aux1, aux2;
+    string result;
+    string conc;
+    vector<string> parser;
+    cout << line << endl;
+    for(i = n; i >= 0; i--){
+        /*binarios*/
+        if(line[i] == '+'){
+            if(line[i-1] != '+'){
+                if(line[i+1] == '('){
+                    j = get_argumentIndexRev(')', line.size(), line);
+                    if(j != -1){
+                        j = j-i-1;
+                        token = line.substr(i+1, j);
+                        parser = splitText(token, ",");
+                        aux1 = parser[0].substr(1, parser[0].size());
+                        aux2 = parser[1].substr(0, parser[1].size());
+                        conc = line.substr(0, i);
+                        result = conc + aux1 + " + " + aux2;
+                        cout << result << endl;
+                        return result;
+                    }          
+                }
+            }
+            if(line[i+1] == '='){
+                if(line[i+2] == '('){
+                    j = get_argumentIndexRev(')', line.size(), line);
+                    if(j != -1){
+                        j = j-i-1;
+                        token = line.substr(i+1, j);
+                        parser = splitText(token, ",");
+                        aux1 = parser[0].substr(2, parser[0].size());
+                        aux2 = parser[1].substr(0, parser[1].size());
+                        conc = line.substr(0, i);
+                        result = conc + aux1 + " += " + aux2;
+                        cout << result << endl;
+                        return result;
+                    }          
+                }
+            }
+        }
+        if(line[i] == '-'){
+            if(line[i-1] != '-'){
+                if(line[i+1] == '('){
+                    j = get_argumentIndexRev(')', line.size(), line);
+                    if(j != -1){
+                        j = j-i-1;
+                        token = line.substr(i+1, j);
+                        parser = splitText(token, ",");
+                        aux1 = parser[0].substr(1, parser[0].size());
+                        aux2 = parser[1].substr(0, parser[1].size());
+                        conc = line.substr(0, i);
+                        result = conc + aux1 + " - " + aux2;
+                        cout << result << endl;
+                        return result;
+                    }          
+                }
+            }
+            if(line[i+1] == '='){
+                if(line[i+2] == '('){
+                    j = get_argumentIndexRev(')', line.size(), line);
+                    if(j != -1){
+                        j = j-i-1;
+                        token = line.substr(i+1, j);
+                        parser = splitText(token, ",");
+                        aux1 = parser[0].substr(2, parser[0].size());
+                        aux2 = parser[1].substr(0, parser[1].size());
+                        conc = line.substr(0, i);
+                        result = conc + aux1 + " -= " + aux2;
+                        cout << result << endl;
+                        return result;
+                    }          
+                }
+            }
+        }
+        if(line[i] == '*'){
+            if(line[i+1] == '('){
+                j = get_argumentIndexRev(')', line.size(), line);
+                if(j != -1){
+                    j = j-i-1;
+                    token = line.substr(i+1, j);
+                    parser = splitText(token, ",");
+                    aux1 = parser[0].substr(1, parser[0].size());
+                    aux2 = parser[1].substr(0, parser[1].size());
+                    conc = line.substr(0, i);
+                    result = conc + aux1 + " * " + aux2;
+                    cout << result << endl;
+                    return result;
+                }          
+            }
+        }
+        if(line[i] == '/'){
+            if(line[i+1] == '('){
+                j = get_argumentIndexRev(')', line.size(), line);
+                if(j != -1){
+                    j = j-i-1;
+                    token = line.substr(i+1, j);
+                    parser = splitText(token, ",");
+                    aux1 = parser[0].substr(1, parser[0].size());
+                    aux2 = parser[1].substr(0, parser[1].size());
+                    conc = line.substr(0, i);
+                    result = conc + aux1 + " / " + aux2;
+                    cout << result << endl;
+                    return result;
+                }          
+            }
+        }
+        if(line[i] == '%'){
+            if(line[i+1] == '('){
+                j = get_argumentIndexRev(')', line.size(), line);
+                if(j != -1){
+                    j = j-i-1;
+                    token = line.substr(i+1, j);
+                    parser = splitText(token, ",");
+                    aux1 = parser[0].substr(1, parser[0].size());
+                    aux2 = parser[1].substr(0, parser[1].size());
+                    conc = line.substr(0, i);
+                    result = conc + aux1 + " % " + aux2;
+                    cout << result << endl;
+                    return result;
+                }          
+            }
+        }
+        if(line[i] == '&'){
+            if(line[i+1] == '(' && line[i-1] != '&'){
+                j = get_argumentIndexRev(')', line.size(), line);
+                if(j != -1){
+                    j = j-i-1;
+                    token = line.substr(i+1, j);
+                    parser = splitText(token, ",");
+                    aux1 = parser[0].substr(1, parser[0].size());
+                    aux2 = parser[1].substr(0, parser[1].size());
+                    conc = line.substr(0, i);
+                    result = conc + aux1 + " & " + aux2;
+                    cout << result << endl;
+                    return result;
+                }          
+            }
+            if(line[i-1] == '&'){
+                if(line[i+1] == '('){
+                    j = get_argumentIndexRev(')', line.size(), line);
+                    if(j != -1){
+                        j = j-i-1;
+                        token = line.substr(i+1, j);
+                        parser = splitText(token, ",");
+                        aux1 = parser[0].substr(1, parser[0].size());
+                        aux2 = parser[1].substr(0, parser[1].size());
+                        conc = line.substr(0, i-1);
+                        result = conc + aux1 + " && " + aux2;
+                        cout << result << endl;
+                        return result;
+                    }          
+                }
+            }
+        }
+        if(line[i] == '|'){
+            if(line[i+1] == '(' && line[i-1] != '|'){
+                j = get_argumentIndexRev(')', line.size(), line);
+                if(j != -1){
+                    j = j-i-1;
+                    token = line.substr(i+1, j);
+                    parser = splitText(token, ",");
+                    aux1 = parser[0].substr(1, parser[0].size());
+                    aux2 = parser[1].substr(0, parser[1].size());
+                    conc = line.substr(0, i);
+                    result = conc + aux1 + " | " + aux2;
+                    cout << result << endl;
+                    return result;
+                }          
+            }
+            if(line[i-1] == '|'){
+                if(line[i+1] == '('){
+                    j = get_argumentIndexRev(')', line.size(), line);
+                    if(j != -1){
+                        j = j-i-1;
+                        token = line.substr(i+1, j);
+                        parser = splitText(token, ",");
+                        aux1 = parser[0].substr(1, parser[0].size());
+                        aux2 = parser[1].substr(0, parser[1].size());
+                        conc = line.substr(0, i-1);
+                        result = conc + aux1 + " || " + aux2;
+                        cout << result << endl;
+                        return result;
+                    }          
+                }
+            }
+        }
+        if(line[i] == '^'){
+            if(line[i+1] == '('){
+                j = get_argumentIndexRev(')', line.size(), line);
+                if(j != -1){
+                    j = j-i-1;
+                    token = line.substr(i+1, j);
+                    parser = splitText(token, ",");
+                    aux1 = parser[0].substr(1, parser[0].size());
+                    aux2 = parser[1].substr(0, parser[1].size());
+                    conc = line.substr(0, i);
+                    result = conc + aux1 + " ^ " + aux2;
+                    cout << result << endl;
+                    return result;
+                }          
+            }
+        }
+        
+        if(line[i] == '='){
+            if(line[i+1] == '(' && line[i-1] != '<' && line[i-1] != '>' && line[i-1] != '+' && line[i-1] != '-'){
+                j = get_argumentIndexRev(')', line.size(), line);
+                if(j != -1){
+                    j = j-i-1;
+                    token = line.substr(i+1, j);
+                    parser = splitText(token, ",");
+                    aux1 = parser[0].substr(1, parser[0].size());
+                    aux2 = parser[1].substr(0, parser[1].size());
+                    conc = line.substr(0, i);
+                    result = conc + aux1 + " = " + aux2;
+                    cout << result << endl;
+                    return result;
+                }          
+            }
+            if(line[i-1] == '='){
+                if(line[i+1] == '('){
+                    j = get_argumentIndexRev(')', line.size(), line);;
+                    if(j != -1){
+                        j = j-i-1;
+                        token = line.substr(i+1, j);
+                        parser = splitText(token, ",");
+                        aux1 = parser[0].substr(2, parser[0].size());
+                        aux2 = parser[1].substr(0, parser[1].size());
+                        conc = line.substr(0, i);
+                        result = conc + aux1 + " == " + aux2;
+                        cout << result << endl;
+                        return result;
+                    }          
+                }
+            }
+        }
+        if(line[i] == '!'){
+            if(line[i+1] == '='){
+                if(line[i+2] == '('){
+                    j = get_argumentIndexRev(')', line.size(), line);
+                    if(j != -1){
+                        j = j-i-1;
+                        token = line.substr(i+1, j);
+                        parser = splitText(token, ",");
+                        aux1 = parser[0].substr(2, parser[0].size());
+                        aux2 = parser[1].substr(0, parser[1].size());
+                        conc = line.substr(0, i);
+                        result = conc + aux1 + " != " + aux2;
+                        cout << result << endl;
+                        return result;
+                    }          
+                }
+            }
+        }
+        if(line[i] == '<'){
+            if(line[i+1] == '(' && line[i-1] != '<'){
+                j = get_argumentIndexRev(')', line.size(), line);
+                if(j != -1){
+                    j = j-i-1;
+                    token = line.substr(i+1, j);
+                    parser = splitText(token, ",");
+                    aux1 = parser[0].substr(1, parser[0].size());
+                    aux2 = parser[1].substr(0, parser[1].size());
+                    conc = line.substr(0, i);
+                    result = conc + aux1 + " < " + aux2;
+                    cout << result << endl;
+                    return result;
+                }          
+            }
+            if(line[i+1] == '='){
+                if(line[i+2] == '('){
+                    j = get_argumentIndexRev(')', line.size(), line);
+                    if(j != -1){
+                        j = j-i-1;
+                        token = line.substr(i+1, j);
+                        parser = splitText(token, ",");
+                        aux1 = parser[0].substr(2, parser[0].size());
+                        aux2 = parser[1].substr(0, parser[1].size());
+                        conc = line.substr(0, i);
+                        result = conc + aux1 + " <= " + aux2;
+                        cout << result << endl;
+                        return result;
+                    }          
+                }
+            }
+            if(line[i+1] == '<'){
+                if(line[i+2] == '('){
+                    j = get_argumentIndexRev(')', line.size(), line);
+                    if(j != -1){
+                        j = j-i-1;
+                        token = line.substr(i+1, j);
+                        parser = splitText(token, ",");
+                        aux1 = parser[0].substr(2, parser[0].size());
+                        aux2 = parser[1].substr(0, parser[1].size());
+                        conc = line.substr(0, i);
+                        result = conc + aux1 + " << " + aux2;
+                        cout << result << endl;
+                        return result;
+                    }          
+                }
+            }
+        }
+        if(line[i] == '>'){
+            if(line[i+1] == '(' && line[i-1] != '>'){
+                j = get_argumentIndexRev(')', line.size(), line);
+                if(j != -1){
+                    j = j-i-1;
+                    token = line.substr(i+1, j);
+                    parser = splitText(token, ",");
+                    aux1 = parser[0].substr(1, parser[0].size());
+                    aux2 = parser[1].substr(0, parser[1].size());
+                    conc = line.substr(0, i);
+                    result = conc + aux1 + " > " + aux2;
+                    cout << result << endl;
+                    return result;
+                }          
+            }
+            if(line[i+1] == '='){
+                if(line[i+2] == '('){
+                    j = get_argumentIndexRev(')', line.size(), line);
+                    if(j != -1){
+                        j = j-i-1;
+                        token = line.substr(i+1, j);
+                        parser = splitText(token, ",");
+                        aux1 = parser[0].substr(2, parser[0].size());
+                        aux2 = parser[1].substr(0, parser[1].size());
+                        conc = line.substr(0, i);
+                        result = conc + aux1 + " >= " + aux2;
+                        cout << result << endl;
+                        return result;
+                    }          
+                }
+            }
+            if(line[i+1] == '>'){
+                if(line[i+2] == '('){
+                    j = get_argumentIndexRev(')', line.size(), line);
+                    if(j != -1){
+                        j = j-i-1;
+                        token = line.substr(i+1, j);
+                        parser = splitText(token, ",");
+                        aux1 = parser[0].substr(2, parser[0].size());
+                        aux2 = parser[1].substr(0, parser[1].size());
+                        conc = line.substr(0, i);
+                        result = conc + aux1 + " >> " + aux2;
+                        cout << result << endl;
+                        return result;
+                    }          
+                }
+            }
+        }
+        /*unarios*/
+        if(line[i] == '+'){
+            if(line[i-1] == '+'){        
+                if(line[i+1] == '('){   
+                    j = get_argumentIndex(')', line.size(), i+2, line);
+                    if(j != -1){
+                        j = j - i - 2;
+                        cout << i << endl;
+                        token = line.substr(i+2, j);
+                        result = token + " = " + token + " + " + "1";
+                        cout << result << endl;
+                        return result;
+                    }
+                }
+            }
+            if(line[i-1] == '+'){
+                if(line[i-2] == ')'){    
+                    j = get_argumentIndexRev('(', line.size(), line);
+                    if(j != -1){
+                        i = i-j-3;
+                        token = line.substr(j+1, i);
+                        result = token + " = " + token + " + " + "1";
+                        cout << result << endl;
+                        return result;
+                    }
+                }
+            }
+        }
+        if(line[i] == '-'){
+            if(line[i-1] == '-'){        
+                if(line[i+1] == '('){   
+                    j = get_argumentIndex(')', line.size(), i+2, line);
+                    if(j != -1){
+                        j = j - i - 2;
+                        cout << i << endl;
+                        token = line.substr(i+2, j);
+                        result = token + " = " + token + " - " + "1";
+                        cout << result << endl;
+                        return result;
+                    }
+                }
+            }
+            if(line[i-1] == '-'){
+                if(line[i-2] == ')'){    
+                    j = get_argumentIndexRev('(', line.size(), line);
+                    if(j != -1){
+                        i = i-j-3;
+                        token = line.substr(j+1, i);
+                        result = token + " = " + token + " - " + "1";
+                        cout << result << endl;
+                        return result;
+                    }
+                }
+            }
+        }
+        if(line[i] == '*'){
+           
+        }
+        if(line[i] == '+'){
+            if(line[i+1] == '+'){
+
+            }
+        }
+        if(line[i] == '-'){
+            if(line[i+1] == '-'){
+
+            }
+        }
+        if(line[i] == '~'){
+            
+        }
+        if(line[i] == '!'){
+            
+        }
+        if(line[i] == '&'){
+            
+        }
+
+    }
+    return ("Pronto");
+}
+
 void ifParser(string line){
+    int n = line.size();
+    int i;
+    string result;
+    cout << line << endl;
+    for(i = 0; i < n; i++){
+        if(line[i] == '<' || line[i] == '+' || line[i] == '-' || line[i] == '=' || line[i] == '*' || line[i] == '>'
+         || line[i] =='^' || line[i] == '/' || line[i] =='%' || line[i] =='&' || line[i] =='|' || line[i] =='!'){
+            result = verifyExpression(line, 0);
+            while(result.compare("Pronto") != 0){
+                result = verifyExpression(result, 0);
+                
+            }
+        } 
+    }
+}
+
+
+
+
+
+void returnParser(string line){
     int n = line.size();
     int i;
     cout << line << endl;
     for(i = 0; i < n; i++){
-        
-
+       
 
     }
+
+
 }
 
 void Arquivo::readFile(vector<string> file_input){
@@ -232,8 +702,9 @@ void Arquivo::readFile(vector<string> file_input){
                 }
                 if(aux.compare("RETURN") == 0){
                     cout << "COMANDO RETURN:" << endl;
-                
-                
+                    aux.clear();
+                    aux = line.substr(z, line.size());
+                    returnParser(aux);
                 }
                 if(aux.compare("WHILE") == 0){
                     cout << "COMANDO WHILE:" << endl;
@@ -254,6 +725,12 @@ void Arquivo::readFile(vector<string> file_input){
                     cout << "COMANDO DO_WHILE:" << endl;
                 
                 
+                }
+                if(aux.compare("ts") == 0){
+                    cout << "expression:" << endl;
+                    string teste = verifyExpression(line, 0);
+                    teste = verifyExpression(teste, 0);
+
                 }
             }
         } 

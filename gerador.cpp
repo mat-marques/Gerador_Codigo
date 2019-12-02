@@ -6,6 +6,14 @@
 using namespace std;
 
 int main() {
+  string input;
+   vector<string> file_input;
+   //Leitura da entrada
+   while(getline(cin, input)) {
+      file_input.push_back(input);
+   }
+   Arquivo *file = new Arquivo(file_input);
+  /*
 	ofstream mipsFile;
     mipsFile.open ("MipsIntermediario.txt");
 //   string input;
@@ -483,7 +491,7 @@ int main() {
    mipsFile.close();
 //   p->mips();
    p->allocateRegister("fatorial", "R0");
-   p->mips();
+   p->mips();*/
 
    return 0;
 
