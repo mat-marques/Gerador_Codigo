@@ -1012,7 +1012,7 @@ void Program::storeReg(string reg1Name, string reg2Name,string label, string fun
 void Program::loadReg(string reg1Name, string reg2Name,string label, string funcName, int index){
 	MipsInstruction *mips_inst;
 	list<MipsInstruction*>::iterator it = instructionList.begin();
-	for(int i =0; i <= index; i++)
+	for(int i =0; i < index; i++)
 		it++;
 
     mips_inst = new MipsInstruction(label, funcName, "lw", reg2Name, "(" + reg1Name + ")",  "");
@@ -1040,28 +1040,32 @@ void Program::allocateRegister(string funcName, string reg){
     			   (*it)->instruction == "addi" || (*it)->instruction == "subi" ||
 				   (*it)->instruction == "li" || (*it)->instruction == "la" ||
 				   (*it)->instruction == "move")) {
-    				this->storeReg(reg_aux.name, reg, (*it)->label, funcName, index);
+    				this->storeReg(reg_aux.name, reg, (*it)->label, funcName, index+1);
+    				index++;
     			}
       			if((*it)->register2 == reg && ((*it)->instruction == "add" || (*it)->instruction == "sub" ||
         			   (*it)->instruction == "mult" || (*it)->instruction == "div" ||
         			   (*it)->instruction == "addi" || (*it)->instruction == "subi" ||
     				   (*it)->instruction == "li" || (*it)->instruction == "la" ||
 					   (*it)->instruction == "move")){
-        				this->loadReg(reg_aux.name, reg, (*it)->label, funcName, index);
+        				this->loadReg(reg_aux.name, reg, (*it)->label, funcName, index-1);
+        				index++;
         		}
       			if((*it)->register2 == reg && ((*it)->instruction == "add" || (*it)->instruction == "sub" ||
         			   (*it)->instruction == "mult" || (*it)->instruction == "div" ||
         			   (*it)->instruction == "addi" || (*it)->instruction == "subi" ||
     				   (*it)->instruction == "li" || (*it)->instruction == "la" ||
 					   (*it)->instruction == "move")){
-        				this->loadReg(reg_aux.name, reg, (*it)->label, funcName, index);
+        				this->loadReg(reg_aux.name, reg, (*it)->label, funcName, index-1);
+        				index++;
         		}
 
       			if(( (*it)->register1 == reg || (*it)->register2 == reg || (*it)->register3 == reg) &&
       			 ((*it)->instruction == "bgt" || (*it)->instruction == "bge" ||
         	      (*it)->instruction == "blt" || (*it)->instruction == "ble" ||
     		      (*it)->instruction == "bne" || (*it)->instruction == "beq" )){
-        			this->loadReg(reg_aux.name, reg, (*it)->label, funcName, index);
+        			this->loadReg(reg_aux.name, reg, (*it)->label, funcName, index-1);
+        			index++;
         		}
 
     		}
