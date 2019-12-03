@@ -884,6 +884,84 @@ ASTObject* verifyExpression(string line) {
 		ast->statementClass = static_cast<void*>(assign);
 	}
 	else {
+        int j = 0;
+        int index;
+        int z;
+        string result;
+        string aux;
+        for(; j < line.size(); j++){
+            if((line[j] >= 65 && line[j] <= 90) || (line[j] >= 97 && line[j] <= 122) && line[j+1] == '('){
+                /* Result = Nome função */
+                result = line.substr(i, j);
+                index = get_argumentIndex(')', line.size(), j+2, line);
+                z = index - (j + 2);
+                /*Aux = Parametro função*/
+                aux = line.substr(j+2, z-1);
+                verifyExpression(aux);
+                index = get_argumentIndex(',', line.size(), index+1, line);
+                /*Verifica se existe a direita*/
+                if(index != -1){
+                    aux.clear()
+                    z = line.size() - (index+1);
+                    aux = line.substr(index+1, z);
+                    /* Verifica expressão da direita*/
+                    verifyExpression(aux);
+                }
+            }
+            else if((line[j] >= 65 && line[j] <= 90) || (line[j] >= 97 && line[j] <= 122) && line[j+1] == '['){
+                /* Result = Nome vetor */
+                result = line.substr(i, j);
+                index = get_argumentIndex(']', line.size(), j+2, line);
+                z = index - (j + 2);
+                /*Aux = Parametro vetor*/
+                aux = line.substr(j+2, z-1);
+                verifyExpression(aux);
+                index = get_argumentIndex(',', line.size(), index+1, line);
+                /*Verifica se existe a direita*/
+                if(index != -1){
+                    aux.clear()
+                    z = line.size() - (index+1);
+                    aux = line.substr(index+1, z);
+                    /* Verifica expressão da direita*/
+                    verifyExpression(aux);
+                }
+            }
+            else if(line[j] == ',')
+                break;
+        }
+        if((line[i] >= 65 && line[i] <= 90) || (line[i] >= 97 && line[i] <= 122)){
+            // Variavel
+            index = get_argumentIndex(',', line.size(), i, line);
+            if(index != -1){
+                /*result = Nome Variavel esquerda*/
+                result = line.substr(i, index-1);
+                z = line.size() - (index+1);
+                aux = line.substr(index+1, z);
+                /* Verifica expressão da direita*/
+                verifyExpression(aux);
+            }
+            else{
+                 /*result = Nome Variavel esquerda*/
+                result = line.substr(i, line.size()-1);
+            }
+        }
+        else if(line[i] >= 0 && line[i] <= 9){
+            //Constante
+            index = get_argumentIndex(',', line.size(), i, line);
+            if(index != -1){
+                /*result = Constante esquerda*/
+                result = line.substr(i, index-1);
+                z = line.size() - (index+1);
+                aux = line.substr(index+1, z);
+                /* Verifica expressão da direita*/
+                verifyExpression(aux);
+            }
+            else{
+                 /*result = Nome Variavel esquerda*/
+                result = line.substr(i, line.size()-1);
+            }
+        }
+
 
 	}
 	return ast;
