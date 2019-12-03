@@ -2,6 +2,7 @@
 #include <string>
 #include "Arquivo.h"
 #include "AST.h"
+#include "regalloc.h"
 
 using namespace std;
 
@@ -22,7 +23,7 @@ int main() {
    p = file->readFile(file_input);
 
    p->mipsProgram(mipsFile);
-
+   avaiableVariables(p);
    p->mips();
    mipsFile.close();
 
