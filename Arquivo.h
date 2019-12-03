@@ -11,7 +11,7 @@ using namespace std;
 class Arquivo{
     public:
         Program *readFile(vector<string> file_input);
-        Arquivo(vector<string> file_input);
+        Arquivo(){};
 };
 
 #endif

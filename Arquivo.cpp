@@ -3,10 +3,7 @@
 
 Statement *bodyStatements(string input);
 BoolOperatorCondicional *condicionalParser(string line);
-
-Arquivo::Arquivo(vector<string> file_input){
-    this->readFile(file_input);
-}
+Assignment *assignmentParser(string line);
 
 vector<string> splitText(string text, string c) {
 	vector<string> word;
@@ -21,6 +18,52 @@ vector<string> splitText(string text, string c) {
 	return word;
 }
 
+string splitExpression(string line) {
+    int i = 0;
+    string value = "";
+    int openB = 0, closeB = 0;
+    while(true) {
+        if((openB == closeB && line[i] == ',') || (i == line.size())){
+            break;
+        }
+        if(line[i] == '(') openB++;
+        if(openB > closeB && line[i] == ')') closeB++;
+        if(openB == 0 && line[i] == ')') break;
+        value = value + line[i];
+        i++;
+    }
+
+    return value;
+}
+
+string isolatedExpression(string line) {
+    int i = 0;
+    string value = "";
+    while(line[i] != ',') {
+        value = value + line[i];
+        i++;
+    }
+    value = value + ')';
+    return value;
+}
+
+
+string splitStatement(string line) {
+    int i = 0;
+    string value = "";
+    int openB = 0, closeB = 0;
+    while(true) {
+        if((openB == closeB && line[i] == ';') || (i == line.size())){
+            break;
+        }
+        if(line[i] == '(') openB++;
+        if(line[i] == ')') closeB++;
+        value = value + line[i];
+        i++;
+    }
+
+    return value;
+}
 
 int get_argumentIndex(char c, int argSize, int startIndex, string argument)
 {
@@ -151,470 +194,725 @@ Scanf *scanfParser(string line){
     return scanf_;
 }
 
-ASTObject* verifyExpression(string line, int s){
-	ASTObject *ex = new Expression();
-    int n = line.size();
-    int i;
-    int j;
-    string token;
-    string aux1, aux2;
-    string result;
-    string conc;
-    vector<string> parser;
-    cout << line << endl;
-    for(i = n; i >= 0; i--){
-        /*binarios*/
-        if(line[i] == '+'){
-            if(line[i-1] != '+'){
-                if(line[i+1] == '('){
-                    j = get_argumentIndexRev(')', line.size(), line);
-                    if(j != -1){
-                        j = j-i-1;
-                        token = line.substr(i+1, j);
-                        parser = splitText(token, ",");
-                        aux1 = parser[0].substr(1, parser[0].size());
-                        aux2 = parser[1].substr(0, parser[1].size());
-                        conc = line.substr(0, i);
-                        result = conc + aux1 + " + " + aux2;
-                        cout << result << endl;
-                        return result;
-                    }          
-                }
-            }
-            if(line[i+1] == '='){
-                if(line[i+2] == '('){
-                    j = get_argumentIndexRev(')', line.size(), line);
-                    if(j != -1){
-                        j = j-i-1;
-                        token = line.substr(i+1, j);
-                        parser = splitText(token, ",");
-                        aux1 = parser[0].substr(2, parser[0].size());
-                        aux2 = parser[1].substr(0, parser[1].size());
-                        conc = line.substr(0, i);
-                        result = conc + aux1 + " += " + aux2;
-                        cout << result << endl;
-                        return result;
-                    }          
-                }
-            }
-        }
-        if(line[i] == '-'){
-            if(line[i-1] != '-'){
-                if(line[i+1] == '('){
-                    j = get_argumentIndexRev(')', line.size(), line);
-                    if(j != -1){
-                        j = j-i-1;
-                        token = line.substr(i+1, j);
-                        parser = splitText(token, ",");
-                        aux1 = parser[0].substr(1, parser[0].size());
-                        aux2 = parser[1].substr(0, parser[1].size());
-                        conc = line.substr(0, i);
-                        result = conc + aux1 + " - " + aux2;
-                        cout << result << endl;
-                        return result;
-                    }          
-                }
-            }
-            if(line[i+1] == '='){
-                if(line[i+2] == '('){
-                    j = get_argumentIndexRev(')', line.size(), line);
-                    if(j != -1){
-                        j = j-i-1;
-                        token = line.substr(i+1, j);
-                        parser = splitText(token, ",");
-                        aux1 = parser[0].substr(2, parser[0].size());
-                        aux2 = parser[1].substr(0, parser[1].size());
-                        conc = line.substr(0, i);
-                        result = conc + aux1 + " -= " + aux2;
-                        cout << result << endl;
-                        return result;
-                    }          
-                }
-            }
-        }
-        if(line[i] == '*'){
-            if(line[i+1] == '('){
-                j = get_argumentIndexRev(')', line.size(), line);
-                if(j != -1){
-                    j = j-i-1;
-                    token = line.substr(i+1, j);
-                    parser = splitText(token, ",");
-                    aux1 = parser[0].substr(1, parser[0].size());
-                    aux2 = parser[1].substr(0, parser[1].size());
-                    conc = line.substr(0, i);
-                    result = conc + aux1 + " * " + aux2;
-                    cout << result << endl;
-                    return result;
-                }          
-            }
-        }
-        if(line[i] == '/'){
-            if(line[i+1] == '('){
-                j = get_argumentIndexRev(')', line.size(), line);
-                if(j != -1){
-                    j = j-i-1;
-                    token = line.substr(i+1, j);
-                    parser = splitText(token, ",");
-                    aux1 = parser[0].substr(1, parser[0].size());
-                    aux2 = parser[1].substr(0, parser[1].size());
-                    conc = line.substr(0, i);
-                    result = conc + aux1 + " / " + aux2;
-                    cout << result << endl;
-                    return result;
-                }          
-            }
-        }
-        if(line[i] == '%'){
-            if(line[i+1] == '('){
-                j = get_argumentIndexRev(')', line.size(), line);
-                if(j != -1){
-                    j = j-i-1;
-                    token = line.substr(i+1, j);
-                    parser = splitText(token, ",");
-                    aux1 = parser[0].substr(1, parser[0].size());
-                    aux2 = parser[1].substr(0, parser[1].size());
-                    conc = line.substr(0, i);
-                    result = conc + aux1 + " % " + aux2;
-                    cout << result << endl;
-                    return result;
-                }          
-            }
-        }
-        if(line[i] == '&'){
-            if(line[i+1] == '(' && line[i-1] != '&'){
-                j = get_argumentIndexRev(')', line.size(), line);
-                if(j != -1){
-                    j = j-i-1;
-                    token = line.substr(i+1, j);
-                    parser = splitText(token, ",");
-                    aux1 = parser[0].substr(1, parser[0].size());
-                    aux2 = parser[1].substr(0, parser[1].size());
-                    conc = line.substr(0, i);
-                    result = conc + aux1 + " & " + aux2;
-                    cout << result << endl;
-                    return result;
-                }          
-            }
-            if(line[i-1] == '&'){
-                if(line[i+1] == '('){
-                    j = get_argumentIndexRev(')', line.size(), line);
-                    if(j != -1){
-                        j = j-i-1;
-                        token = line.substr(i+1, j);
-                        parser = splitText(token, ",");
-                        aux1 = parser[0].substr(1, parser[0].size());
-                        aux2 = parser[1].substr(0, parser[1].size());
-                        conc = line.substr(0, i-1);
-                        result = conc + aux1 + " && " + aux2;
-                        cout << result << endl;
-                        return result;
-                    }          
-                }
-            }
-        }
-        if(line[i] == '|'){
-            if(line[i+1] == '(' && line[i-1] != '|'){
-                j = get_argumentIndexRev(')', line.size(), line);
-                if(j != -1){
-                    j = j-i-1;
-                    token = line.substr(i+1, j);
-                    parser = splitText(token, ",");
-                    aux1 = parser[0].substr(1, parser[0].size());
-                    aux2 = parser[1].substr(0, parser[1].size());
-                    conc = line.substr(0, i);
-                    result = conc + aux1 + " | " + aux2;
-                    cout << result << endl;
-                    return result;
-                }          
-            }
-            if(line[i-1] == '|'){
-                if(line[i+1] == '('){
-                    j = get_argumentIndexRev(')', line.size(), line);
-                    if(j != -1){
-                        j = j-i-1;
-                        token = line.substr(i+1, j);
-                        parser = splitText(token, ",");
-                        aux1 = parser[0].substr(1, parser[0].size());
-                        aux2 = parser[1].substr(0, parser[1].size());
-                        conc = line.substr(0, i-1);
-                        result = conc + aux1 + " || " + aux2;
-                        cout << result << endl;
-                        return result;
-                    }          
-                }
-            }
-        }
-        if(line[i] == '^'){
-            if(line[i+1] == '('){
-                j = get_argumentIndexRev(')', line.size(), line);
-                if(j != -1){
-                    j = j-i-1;
-                    token = line.substr(i+1, j);
-                    parser = splitText(token, ",");
-                    aux1 = parser[0].substr(1, parser[0].size());
-                    aux2 = parser[1].substr(0, parser[1].size());
-                    conc = line.substr(0, i);
-                    result = conc + aux1 + " ^ " + aux2;
-                    cout << result << endl;
-                    return result;
-                }          
-            }
-        }
-        
-        if(line[i] == '='){
-            if(line[i+1] == '(' && line[i-1] != '<' && line[i-1] != '>' && line[i-1] != '+' && line[i-1] != '-'){
-                j = get_argumentIndexRev(')', line.size(), line);
-                if(j != -1){
-                    j = j-i-1;
-                    token = line.substr(i+1, j);
-                    parser = splitText(token, ",");
-                    aux1 = parser[0].substr(1, parser[0].size());
-                    aux2 = parser[1].substr(0, parser[1].size());
-                    conc = line.substr(0, i);
-                    result = conc + aux1 + " = " + aux2;
-                    cout << result << endl;
-                    return result;
-                }          
-            }
-            if(line[i-1] == '='){
-                if(line[i+1] == '('){
-                    j = get_argumentIndexRev(')', line.size(), line);;
-                    if(j != -1){
-                        j = j-i-1;
-                        token = line.substr(i+1, j);
-                        parser = splitText(token, ",");
-                        aux1 = parser[0].substr(2, parser[0].size());
-                        aux2 = parser[1].substr(0, parser[1].size());
-                        conc = line.substr(0, i);
-                        result = conc + aux1 + " == " + aux2;
-                        cout << result << endl;
-                        return result;
-                    }          
-                }
-            }
-        }
-        if(line[i] == '!'){
-            if(line[i+1] == '='){
-                if(line[i+2] == '('){
-                    j = get_argumentIndexRev(')', line.size(), line);
-                    if(j != -1){
-                        j = j-i-1;
-                        token = line.substr(i+1, j);
-                        parser = splitText(token, ",");
-                        aux1 = parser[0].substr(2, parser[0].size());
-                        aux2 = parser[1].substr(0, parser[1].size());
-                        conc = line.substr(0, i);
-                        result = conc + aux1 + " != " + aux2;
-                        cout << result << endl;
-                        return result;
-                    }          
-                }
-            }
-        }
-        if(line[i] == '<'){
-            if(line[i+1] == '(' && line[i-1] != '<'){
-                j = get_argumentIndexRev(')', line.size(), line);
-                if(j != -1){
-                    j = j-i-1;
-                    token = line.substr(i+1, j);
-                    parser = splitText(token, ",");
-                    aux1 = parser[0].substr(1, parser[0].size());
-                    aux2 = parser[1].substr(0, parser[1].size());
-                    conc = line.substr(0, i);
-                    result = conc + aux1 + " < " + aux2;
-                    cout << result << endl;
-                    return result;
-                }          
-            }
-            if(line[i+1] == '='){
-                if(line[i+2] == '('){
-                    j = get_argumentIndexRev(')', line.size(), line);
-                    if(j != -1){
-                        j = j-i-1;
-                        token = line.substr(i+1, j);
-                        parser = splitText(token, ",");
-                        aux1 = parser[0].substr(2, parser[0].size());
-                        aux2 = parser[1].substr(0, parser[1].size());
-                        conc = line.substr(0, i);
-                        result = conc + aux1 + " <= " + aux2;
-                        cout << result << endl;
-                        return result;
-                    }          
-                }
-            }
-            if(line[i+1] == '<'){
-                if(line[i+2] == '('){
-                    j = get_argumentIndexRev(')', line.size(), line);
-                    if(j != -1){
-                        j = j-i-1;
-                        token = line.substr(i+1, j);
-                        parser = splitText(token, ",");
-                        aux1 = parser[0].substr(2, parser[0].size());
-                        aux2 = parser[1].substr(0, parser[1].size());
-                        conc = line.substr(0, i);
-                        result = conc + aux1 + " << " + aux2;
-                        cout << result << endl;
-                        return result;
-                    }          
-                }
-            }
-        }
-        if(line[i] == '>'){
-            if(line[i+1] == '(' && line[i-1] != '>'){
-                j = get_argumentIndexRev(')', line.size(), line);
-                if(j != -1){
-                    j = j-i-1;
-                    token = line.substr(i+1, j);
-                    parser = splitText(token, ",");
-                    aux1 = parser[0].substr(1, parser[0].size());
-                    aux2 = parser[1].substr(0, parser[1].size());
-                    conc = line.substr(0, i);
-                    result = conc + aux1 + " > " + aux2;
-                    cout << result << endl;
-                    return result;
-                }          
-            }
-            if(line[i+1] == '='){
-                if(line[i+2] == '('){
-                    j = get_argumentIndexRev(')', line.size(), line);
-                    if(j != -1){
-                        j = j-i-1;
-                        token = line.substr(i+1, j);
-                        parser = splitText(token, ",");
-                        aux1 = parser[0].substr(2, parser[0].size());
-                        aux2 = parser[1].substr(0, parser[1].size());
-                        conc = line.substr(0, i);
-                        result = conc + aux1 + " >= " + aux2;
-                        cout << result << endl;
-                        return result;
-                    }          
-                }
-            }
-            if(line[i+1] == '>'){
-                if(line[i+2] == '('){
-                    j = get_argumentIndexRev(')', line.size(), line);
-                    if(j != -1){
-                        j = j-i-1;
-                        token = line.substr(i+1, j);
-                        parser = splitText(token, ",");
-                        aux1 = parser[0].substr(2, parser[0].size());
-                        aux2 = parser[1].substr(0, parser[1].size());
-                        conc = line.substr(0, i);
-                        result = conc + aux1 + " >> " + aux2;
-                        cout << result << endl;
-                        return result;
-                    }          
-                }
-            }
-        }
-        /*unarios*/
-        if(line[i] == '+'){
-            if(line[i-1] == '+'){        
-                if(line[i+1] == '('){   
-                    j = get_argumentIndex(')', line.size(), i+2, line);
-                    if(j != -1){
-                        j = j - i - 2;
-                        cout << i << endl;
-                        token = line.substr(i+2, j);
-                        result = token + " = " + token + " + " + "1";
-                        cout << result << endl;
-                        return result;
-                    }
-                }
-            }
-            if(line[i-1] == '+'){
-                if(line[i-2] == ')'){    
-                    j = get_argumentIndexRev('(', line.size(), line);
-                    if(j != -1){
-                        i = i-j-3;
-                        token = line.substr(j+1, i);
-                        result = token + " = " + token + " + " + "1";
-                        cout << result << endl;
-                        return result;
-                    }
-                }
-            }
-        }
-        if(line[i] == '-'){
-            if(line[i-1] == '-'){        
-                if(line[i+1] == '('){   
-                    j = get_argumentIndex(')', line.size(), i+2, line);
-                    if(j != -1){
-                        j = j - i - 2;
-                        cout << i << endl;
-                        token = line.substr(i+2, j);
-                        result = token + " = " + token + " - " + "1";
-                        cout << result << endl;
-                        return result;
-                    }
-                }
-            }
-            if(line[i-1] == '-'){
-                if(line[i-2] == ')'){    
-                    j = get_argumentIndexRev('(', line.size(), line);
-                    if(j != -1){
-                        i = i-j-3;
-                        token = line.substr(j+1, i);
-                        result = token + " = " + token + " - " + "1";
-                        cout << result << endl;
-                        return result;
-                    }
-                }
-            }
-        }
-        if(line[i] == '*'){
-           
-        }
-        if(line[i] == '+'){
-            if(line[i+1] == '+'){
+//ASTObject* verifyExpression1(string line, int s){
+//	ASTObject *ex = new ASTObject();
+//    int n = line.size();
+//    int i;
+//    int j;
+//    string token;
+//    string aux1, aux2;
+//    string result;
+//    string conc;
+//    vector<string> parser;
+//    cout << line << endl;
+//    for(i = n; i >= 0; i--){
+//        /*binarios*/
+//        if(line[i] == '+'){
+//            if(line[i-1] != '+'){
+//                if(line[i+1] == '('){
+//                    j = get_argumentIndexRev(')', line.size(), line);
+//                    if(j != -1){
+//                        j = j-i-1;
+//                        token = line.substr(i+1, j);
+//                        parser = splitText(token, ",");
+//                        aux1 = parser[0].substr(1, parser[0].size());
+//                        aux2 = parser[1].substr(0, parser[1].size());
+//                        conc = line.substr(0, i);
+//                        result = conc + aux1 + " + " + aux2;
+//                        cout << result << endl;
+//                        return result;
+//                    }
+//                }
+//            }
+//            if(line[i+1] == '='){
+//                if(line[i+2] == '('){
+//                    j = get_argumentIndexRev(')', line.size(), line);
+//                    if(j != -1){
+//                        j = j-i-1;
+//                        token = line.substr(i+1, j);
+//                        parser = splitText(token, ",");
+//                        aux1 = parser[0].substr(2, parser[0].size());
+//                        aux2 = parser[1].substr(0, parser[1].size());
+//                        conc = line.substr(0, i);
+//                        result = conc + aux1 + " += " + aux2;
+//                        cout << result << endl;
+//                        return result;
+//                    }
+//                }
+//            }
+//        }
+//        if(line[i] == '-'){
+//            if(line[i-1] != '-'){
+//                if(line[i+1] == '('){
+//                    j = get_argumentIndexRev(')', line.size(), line);
+//                    if(j != -1){
+//                        j = j-i-1;
+//                        token = line.substr(i+1, j);
+//                        parser = splitText(token, ",");
+//                        aux1 = parser[0].substr(1, parser[0].size());
+//                        aux2 = parser[1].substr(0, parser[1].size());
+//                        conc = line.substr(0, i);
+//                        result = conc + aux1 + " - " + aux2;
+//                        cout << result << endl;
+//                        return result;
+//                    }
+//                }
+//            }
+//            if(line[i+1] == '='){
+//                if(line[i+2] == '('){
+//                    j = get_argumentIndexRev(')', line.size(), line);
+//                    if(j != -1){
+//                        j = j-i-1;
+//                        token = line.substr(i+1, j);
+//                        parser = splitText(token, ",");
+//                        aux1 = parser[0].substr(2, parser[0].size());
+//                        aux2 = parser[1].substr(0, parser[1].size());
+//                        conc = line.substr(0, i);
+//                        result = conc + aux1 + " -= " + aux2;
+//                        cout << result << endl;
+//                        return result;
+//                    }
+//                }
+//            }
+//        }
+//        if(line[i] == '*'){
+//            if(line[i+1] == '('){
+//                j = get_argumentIndexRev(')', line.size(), line);
+//                if(j != -1){
+//                    j = j-i-1;
+//                    token = line.substr(i+1, j);
+//                    parser = splitText(token, ",");
+//                    aux1 = parser[0].substr(1, parser[0].size());
+//                    aux2 = parser[1].substr(0, parser[1].size());
+//                    conc = line.substr(0, i);
+//                    result = conc + aux1 + " * " + aux2;
+//                    cout << result << endl;
+//                    return result;
+//                }
+//            }
+//        }
+//        if(line[i] == '/'){
+//            if(line[i+1] == '('){
+//                j = get_argumentIndexRev(')', line.size(), line);
+//                if(j != -1){
+//                    j = j-i-1;
+//                    token = line.substr(i+1, j);
+//                    parser = splitText(token, ",");
+//                    aux1 = parser[0].substr(1, parser[0].size());
+//                    aux2 = parser[1].substr(0, parser[1].size());
+//                    conc = line.substr(0, i);
+//                    result = conc + aux1 + " / " + aux2;
+//                    cout << result << endl;
+//                    return result;
+//                }
+//            }
+//        }
+//        if(line[i] == '%'){
+//            if(line[i+1] == '('){
+//                j = get_argumentIndexRev(')', line.size(), line);
+//                if(j != -1){
+//                    j = j-i-1;
+//                    token = line.substr(i+1, j);
+//                    parser = splitText(token, ",");
+//                    aux1 = parser[0].substr(1, parser[0].size());
+//                    aux2 = parser[1].substr(0, parser[1].size());
+//                    conc = line.substr(0, i);
+//                    result = conc + aux1 + " % " + aux2;
+//                    cout << result << endl;
+//                    return result;
+//                }
+//            }
+//        }
+//        if(line[i] == '&'){
+//            if(line[i+1] == '(' && line[i-1] != '&'){
+//                j = get_argumentIndexRev(')', line.size(), line);
+//                if(j != -1){
+//                    j = j-i-1;
+//                    token = line.substr(i+1, j);
+//                    parser = splitText(token, ",");
+//                    aux1 = parser[0].substr(1, parser[0].size());
+//                    aux2 = parser[1].substr(0, parser[1].size());
+//                    conc = line.substr(0, i);
+//                    result = conc + aux1 + " & " + aux2;
+//                    cout << result << endl;
+//                    return result;
+//                }
+//            }
+//            if(line[i-1] == '&'){
+//                if(line[i+1] == '('){
+//                    j = get_argumentIndexRev(')', line.size(), line);
+//                    if(j != -1){
+//                        j = j-i-1;
+//                        token = line.substr(i+1, j);
+//                        parser = splitText(token, ",");
+//                        aux1 = parser[0].substr(1, parser[0].size());
+//                        aux2 = parser[1].substr(0, parser[1].size());
+//                        conc = line.substr(0, i-1);
+//                        result = conc + aux1 + " && " + aux2;
+//                        cout << result << endl;
+//                        return result;
+//                    }
+//                }
+//            }
+//        }
+//        if(line[i] == '|'){
+//            if(line[i+1] == '(' && line[i-1] != '|'){
+//                j = get_argumentIndexRev(')', line.size(), line);
+//                if(j != -1){
+//                    j = j-i-1;
+//                    token = line.substr(i+1, j);
+//                    parser = splitText(token, ",");
+//                    aux1 = parser[0].substr(1, parser[0].size());
+//                    aux2 = parser[1].substr(0, parser[1].size());
+//                    conc = line.substr(0, i);
+//                    result = conc + aux1 + " | " + aux2;
+//                    cout << result << endl;
+//                    return result;
+//                }
+//            }
+//            if(line[i-1] == '|'){
+//                if(line[i+1] == '('){
+//                    j = get_argumentIndexRev(')', line.size(), line);
+//                    if(j != -1){
+//                        j = j-i-1;
+//                        token = line.substr(i+1, j);
+//                        parser = splitText(token, ",");
+//                        aux1 = parser[0].substr(1, parser[0].size());
+//                        aux2 = parser[1].substr(0, parser[1].size());
+//                        conc = line.substr(0, i-1);
+//                        result = conc + aux1 + " || " + aux2;
+//                        cout << result << endl;
+//                        return result;
+//                    }
+//                }
+//            }
+//        }
+//        if(line[i] == '^'){
+//            if(line[i+1] == '('){
+//                j = get_argumentIndexRev(')', line.size(), line);
+//                if(j != -1){
+//                    j = j-i-1;
+//                    token = line.substr(i+1, j);
+//                    parser = splitText(token, ",");
+//                    aux1 = parser[0].substr(1, parser[0].size());
+//                    aux2 = parser[1].substr(0, parser[1].size());
+//                    conc = line.substr(0, i);
+//                    result = conc + aux1 + " ^ " + aux2;
+//                    cout << result << endl;
+//                    return result;
+//                }
+//            }
+//        }
+//
+//        if(line[i] == '='){
+//            if(line[i+1] == '(' && line[i-1] != '<' && line[i-1] != '>' && line[i-1] != '+' && line[i-1] != '-'){
+//                j = get_argumentIndexRev(')', line.size(), line);
+//                if(j != -1){
+//                    j = j-i-1;
+//                    token = line.substr(i+1, j);
+//                    parser = splitText(token, ",");
+//                    aux1 = parser[0].substr(1, parser[0].size());
+//                    aux2 = parser[1].substr(0, parser[1].size());
+//                    conc = line.substr(0, i);
+//                    result = conc + aux1 + " = " + aux2;
+//                    cout << result << endl;
+//                    return result;
+//                }
+//            }
+//            if(line[i-1] == '='){
+//                if(line[i+1] == '('){
+//                    j = get_argumentIndexRev(')', line.size(), line);;
+//                    if(j != -1){
+//                        j = j-i-1;
+//                        token = line.substr(i+1, j);
+//                        parser = splitText(token, ",");
+//                        aux1 = parser[0].substr(2, parser[0].size());
+//                        aux2 = parser[1].substr(0, parser[1].size());
+//                        conc = line.substr(0, i);
+//                        result = conc + aux1 + " == " + aux2;
+//                        cout << result << endl;
+//                        return result;
+//                    }
+//                }
+//            }
+//        }
+//        if(line[i] == '!'){
+//            if(line[i+1] == '='){
+//                if(line[i+2] == '('){
+//                    j = get_argumentIndexRev(')', line.size(), line);
+//                    if(j != -1){
+//                        j = j-i-1;
+//                        token = line.substr(i+1, j);
+//                        parser = splitText(token, ",");
+//                        aux1 = parser[0].substr(2, parser[0].size());
+//                        aux2 = parser[1].substr(0, parser[1].size());
+//                        conc = line.substr(0, i);
+//                        result = conc + aux1 + " != " + aux2;
+//                        cout << result << endl;
+//                        return result;
+//                    }
+//                }
+//            }
+//        }
+//        if(line[i] == '<'){
+//            if(line[i+1] == '(' && line[i-1] != '<'){
+//                j = get_argumentIndexRev(')', line.size(), line);
+//                if(j != -1){
+//                    j = j-i-1;
+//                    token = line.substr(i+1, j);
+//                    parser = splitText(token, ",");
+//                    aux1 = parser[0].substr(1, parser[0].size());
+//                    aux2 = parser[1].substr(0, parser[1].size());
+//                    conc = line.substr(0, i);
+//                    result = conc + aux1 + " < " + aux2;
+//                    cout << result << endl;
+//                    return result;
+//                }
+//            }
+//            if(line[i+1] == '='){
+//                if(line[i+2] == '('){
+//                    j = get_argumentIndexRev(')', line.size(), line);
+//                    if(j != -1){
+//                        j = j-i-1;
+//                        token = line.substr(i+1, j);
+//                        parser = splitText(token, ",");
+//                        aux1 = parser[0].substr(2, parser[0].size());
+//                        aux2 = parser[1].substr(0, parser[1].size());
+//                        conc = line.substr(0, i);
+//                        result = conc + aux1 + " <= " + aux2;
+//                        cout << result << endl;
+//                        return result;
+//                    }
+//                }
+//            }
+//            if(line[i+1] == '<'){
+//                if(line[i+2] == '('){
+//                    j = get_argumentIndexRev(')', line.size(), line);
+//                    if(j != -1){
+//                        j = j-i-1;
+//                        token = line.substr(i+1, j);
+//                        parser = splitText(token, ",");
+//                        aux1 = parser[0].substr(2, parser[0].size());
+//                        aux2 = parser[1].substr(0, parser[1].size());
+//                        conc = line.substr(0, i);
+//                        result = conc + aux1 + " << " + aux2;
+//                        cout << result << endl;
+//                        return result;
+//                    }
+//                }
+//            }
+//        }
+//        if(line[i] == '>'){
+//            if(line[i+1] == '(' && line[i-1] != '>'){
+//                j = get_argumentIndexRev(')', line.size(), line);
+//                if(j != -1){
+//                    j = j-i-1;
+//                    token = line.substr(i+1, j);
+//                    parser = splitText(token, ",");
+//                    aux1 = parser[0].substr(1, parser[0].size());
+//                    aux2 = parser[1].substr(0, parser[1].size());
+//                    conc = line.substr(0, i);
+//                    result = conc + aux1 + " > " + aux2;
+//                    cout << result << endl;
+//                    return result;
+//                }
+//            }
+//            if(line[i+1] == '='){
+//                if(line[i+2] == '('){
+//                    j = get_argumentIndexRev(')', line.size(), line);
+//                    if(j != -1){
+//                        j = j-i-1;
+//                        token = line.substr(i+1, j);
+//                        parser = splitText(token, ",");
+//                        aux1 = parser[0].substr(2, parser[0].size());
+//                        aux2 = parser[1].substr(0, parser[1].size());
+//                        conc = line.substr(0, i);
+//                        result = conc + aux1 + " >= " + aux2;
+//                        cout << result << endl;
+//                        return result;
+//                    }
+//                }
+//            }
+//            if(line[i+1] == '>'){
+//                if(line[i+2] == '('){
+//                    j = get_argumentIndexRev(')', line.size(), line);
+//                    if(j != -1){
+//                        j = j-i-1;
+//                        token = line.substr(i+1, j);
+//                        parser = splitText(token, ",");
+//                        aux1 = parser[0].substr(2, parser[0].size());
+//                        aux2 = parser[1].substr(0, parser[1].size());
+//                        conc = line.substr(0, i);
+//                        result = conc + aux1 + " >> " + aux2;
+//                        cout << result << endl;
+//                        return result;
+//                    }
+//                }
+//            }
+//        }
+//        /*unarios*/
+//        if(line[i] == '+'){
+//            if(line[i-1] == '+'){
+//                if(line[i+1] == '('){
+//                    j = get_argumentIndex(')', line.size(), i+2, line);
+//                    if(j != -1){
+//                        j = j - i - 2;
+//                        cout << i << endl;
+//                        token = line.substr(i+2, j);
+//                        result = token + " = " + token + " + " + "1";
+//                        cout << result << endl;
+//                        return result;
+//                    }
+//                }
+//            }
+//            if(line[i-1] == '+'){
+//                if(line[i-2] == ')'){
+//                    j = get_argumentIndexRev('(', line.size(), line);
+//                    if(j != -1){
+//                        i = i-j-3;
+//                        token = line.substr(j+1, i);
+//                        result = token + " = " + token + " + " + "1";
+//                        cout << result << endl;
+//                        return result;
+//                    }
+//                }
+//            }
+//        }
+//        if(line[i] == '-'){
+//            if(line[i-1] == '-'){
+//                if(line[i+1] == '('){
+//                    j = get_argumentIndex(')', line.size(), i+2, line);
+//                    if(j != -1){
+//                        j = j - i - 2;
+//                        cout << i << endl;
+//                        token = line.substr(i+2, j);
+//                        result = token + " = " + token + " - " + "1";
+//                        cout << result << endl;
+//                        return result;
+//                    }
+//                }
+//            }
+//            if(line[i-1] == '-'){
+//                if(line[i-2] == ')'){
+//                    j = get_argumentIndexRev('(', line.size(), line);
+//                    if(j != -1){
+//                        i = i-j-3;
+//                        token = line.substr(j+1, i);
+//                        result = token + " = " + token + " - " + "1";
+//                        cout << result << endl;
+//                        return result;
+//                    }
+//                }
+//            }
+//        }
+//        if(line[i] == '*'){
+//
+//        }
+//        if(line[i] == '+'){
+//            if(line[i+1] == '+'){
+//
+//            }
+//        }
+//        if(line[i] == '-'){
+//            if(line[i+1] == '-'){
+//
+//            }
+//        }
+//        if(line[i] == '~'){
+//
+//        }
+//        if(line[i] == '!'){
+//
+//        }
+//        if(line[i] == '&'){
+//
+//        }
+//
+//    }
+//    return ex;
+//}
 
-            }
-        }
-        if(line[i] == '-'){
-            if(line[i+1] == '-'){
 
-            }
-        }
-        if(line[i] == '~'){
-            
-        }
-        if(line[i] == '!'){
-            
-        }
-        if(line[i] == '&'){
-            
-        }
 
-    }
-    return ex;
+ASTObject* verifyExpression(string line) {
+	string aux, ex_l, ex_r;
+	int i = 0;
+	ASTObject *ast;
+	Expression *ex, *exp_l, *exp_r;
+	Assignment *assign;
+	if(line[i] == '(') i++;
+
+	if(line[i] == '+') {
+
+		if(line[i+1] == '+') { //++
+			ASTObject* ast_aux = NULL;
+			ast = new ASTObject();
+			ast->className = "EXPRESSION";
+
+			ex = new Expression();
+			ex->op = "+";
+			ast->statementClass = static_cast<void*>(ex);
+
+			aux = line.substr(i+2, line.size()-1);
+
+			//Esquerda
+			ex_l = aux.substr(1, aux.size());
+			ex_l = splitExpression(ex_l);
+			ast_aux = verifyExpression(ex_l);
+			ex->left = static_cast<Expression*>(ast_aux->statementClass);
+
+			Number *n = new Number;
+			n->number_type = "INT";
+			n->value = "1";
+			exp_r = new Expression();
+			ast_aux = new ASTObject();
+			ast_aux->statementClass = static_cast<void*>(n);
+			ast_aux->className = "NUMBER";
+			exp_r->term = ast_aux;
+			ex->right = exp_r;
+		}
+		else if(line[i+1] == '=') { //+=
+			ASTObject* ast_aux = NULL;
+			ast = new ASTObject();
+			ast->className = "EXPRESSION";
+
+			ex = new Expression();
+			ex->op = "+";
+			ast->statementClass = static_cast<void*>(ex);
+			assign = new Assignment();
+			aux = line.substr(i+2, line.size()-1);
+
+			assign->assignObject = ast;
+
+			//Esquerda
+			ex_l = aux.substr(1, aux.size());
+			ex_l = splitExpression(ex_l);
+			ast_aux = verifyExpression(ex_l);
+			ex->left = static_cast<Expression*>(ast_aux->statementClass);
+
+			assign->variable = static_cast<Variable*>(ex->left->term->statementClass);
+
+			ast_aux = NULL;
+			//Direita
+			ex_r = line.substr(ex_l.size()+5, line.size());
+			ex_r = splitExpression(ex_r);
+			ex_r = ex_r.substr(0, ex_r.size()-1);
+			ast_aux = verifyExpression(ex_r);
+			if(ast_aux != NULL){
+				ex->right = static_cast<Expression*>(ast_aux->statementClass);
+			}
+
+			ast = new ASTObject();
+			ast->className = "ASSIGNMENT";
+			ast->statementClass = static_cast<void*>(assign);
+
+		} else {
+			ASTObject* ast_aux = NULL;
+			ast = new ASTObject();
+			ast->className = "EXPRESSION";
+
+			ex = new Expression();
+			ex->op = "+";
+			ast->statementClass = static_cast<void*>(ex);
+
+			aux = line.substr(i+1, line.size()-1);
+
+			//Esquerda
+			ex_l = aux.substr(1, aux.size());
+			ex_l = splitExpression(ex_l);
+			ast_aux = verifyExpression(ex_l);
+			ex->left = static_cast<Expression*>(ast_aux->statementClass);
+
+
+			ast_aux = NULL;
+			//Direita
+			ex_r = line.substr(ex_l.size()+5, line.size());
+			ex_r = splitExpression(ex_r);
+			ex_r = ex_r.substr(0, ex_r.size()-1);
+			ast_aux = verifyExpression(ex_r);
+			if(ast_aux != NULL){
+				ex->right = static_cast<Expression*>(ast_aux->statementClass);
+			}
+		}
+
+
+	}
+	else if(line[i] == '-') {
+
+		if(line[i+1] == '-') { //++
+			ASTObject* ast_aux = NULL;
+			ast = new ASTObject();
+			ast->className = "EXPRESSION";
+
+			ex = new Expression();
+			ex->op = "-";
+			ast->statementClass = static_cast<void*>(ex);
+
+			aux = line.substr(i+2, line.size()-1);
+
+			//Esquerda
+			ex_l = aux.substr(1, aux.size());
+			ex_l = splitExpression(ex_l);
+			ast_aux = verifyExpression(ex_l);
+			ex->left = static_cast<Expression*>(ast_aux->statementClass);
+
+			Number *n = new Number;
+			n->number_type = "INT";
+			n->value = "1";
+			exp_r = new Expression();
+			ast_aux = new ASTObject();
+			ast_aux->statementClass = static_cast<void*>(n);
+			ast_aux->className = "NUMBER";
+			exp_r->term = ast_aux;
+			ex->right = exp_r;
+		}
+		else if(line[i+1] == '=') { //+=
+			ASTObject* ast_aux = NULL;
+			ast = new ASTObject();
+			ast->className = "EXPRESSION";
+
+			ex = new Expression();
+			ex->op = "-";
+			ast->statementClass = static_cast<void*>(ex);
+			assign = new Assignment();
+			aux = line.substr(i+2, line.size()-1);
+
+			assign->assignObject = ast;
+
+			//Esquerda
+			ex_l = aux.substr(1, aux.size());
+			ex_l = splitExpression(ex_l);
+			ast_aux = verifyExpression(ex_l);
+			ex->left = static_cast<Expression*>(ast_aux->statementClass);
+
+			assign->variable = static_cast<Variable*>(ex->left->term->statementClass);
+
+			ast_aux = NULL;
+			//Direita
+			ex_r = line.substr(ex_l.size()+5, line.size());
+			ex_r = splitExpression(ex_r);
+			ex_r = ex_r.substr(0, ex_r.size()-1);
+			ast_aux = verifyExpression(ex_r);
+			if(ast_aux != NULL){
+				ex->right = static_cast<Expression*>(ast_aux->statementClass);
+			}
+
+			ast = new ASTObject();
+			ast->className = "ASSIGNMENT";
+			ast->statementClass = static_cast<void*>(assign);
+
+		} else {
+			ASTObject* ast_aux = NULL;
+			ast = new ASTObject();
+			ast->className = "EXPRESSION";
+
+			ex = new Expression();
+			ex->op = "-";
+			ast->statementClass = static_cast<void*>(ex);
+
+			aux = line.substr(i+1, line.size()-1);
+
+			//Esquerda
+			ex_l = aux.substr(1, aux.size());
+			ex_l = splitExpression(ex_l);
+			ast_aux = verifyExpression(ex_l);
+			ex->left = static_cast<Expression*>(ast_aux->statementClass);
+
+
+			ast_aux = NULL;
+			//Direita
+			ex_r = line.substr(ex_l.size()+5, line.size());
+			ex_r = splitExpression(ex_r);
+			ex_r = ex_r.substr(0, ex_r.size()-1);
+			ast_aux = verifyExpression(ex_r);
+			if(ast_aux != NULL){
+				ex->right = static_cast<Expression*>(ast_aux->statementClass);
+			}
+		}
+	}
+	else if(line[i] == '*') {
+		ASTObject* ast_aux = NULL;
+		ast = new ASTObject();
+		ast->className = "EXPRESSION";
+
+		ex = new Expression();
+
+		if(line[i] == '*') ex->op = "*";
+		if(line[i] == '!') ex->op = "!";
+		if(line[i] == '/') ex->op = "/";
+		if(line[i] == '&') ex->op = "&";
+		if(line[i] == '|') ex->op = "|";
+		if(line[i] == '^') ex->op = "^";
+		if(line[i] == '~') ex->op = "~";
+
+		if(line[i] == '<' && line[i+1] == '<'){
+			ex->op = "<<";
+			i++;
+		}
+		if(line[i] == '>' && line[i+1] == '>'){
+			ex->op = ">>";
+			i++;
+		}
+		if(line[i] == '%') ex->op = "%";
+
+		ast->statementClass = static_cast<void*>(ex);
+
+		aux = line.substr(i+1, line.size()-1);
+
+		//Esquerda
+		ex_l = aux.substr(1, aux.size());
+		ex_l = splitExpression(ex_l);
+		ast_aux = verifyExpression(ex_l);
+		ex->left = static_cast<Expression*>(ast_aux->statementClass);
+
+
+		ast_aux = NULL;
+		//Direita
+		ex_r = line.substr(ex_l.size()+5, line.size());
+		ex_r = splitExpression(ex_r);
+		ex_r = ex_r.substr(0, ex_r.size()-1);
+		ast_aux = verifyExpression(ex_r);
+		if(ast_aux != NULL){
+			ex->right = static_cast<Expression*>(ast_aux->statementClass);
+		}
+	}
+	else if(line[i] == '=') {
+		assign = assignmentParser(line);
+
+		ast = new ASTObject();
+		ast->className = "ASSIGNMENT";
+		ast->statementClass = static_cast<void*>(assign);
+	}
+	else {
+
+	}
+	return ast;
 }
 
-IF* ifParser(string line){
-	IF *if_ = new IF();
+Assignment *assignmentParser(string line){
+	Assignment *assign = new Assignment();
+    int i = 0;
+    string aux = "";
+    ASTObject *ex;
+    Expression *ex_l;
+    if(line[i] == '(') i++;
 
-    int n = line.size();
-    int i;
-    string result;
-    cout << line << endl;
-    for(i = 0; i < n; i++){
-        if(line[i] == '<' || line[i] == '+' || line[i] == '-' || line[i] == '=' || line[i] == '*' || line[i] == '>'
-         || line[i] =='^' || line[i] == '/' || line[i] =='%' || line[i] =='&' || line[i] =='|' || line[i] =='!'){
-            result = verifyExpression(line, 0);
-            while(result.compare("Pronto") != 0){
-                result = verifyExpression(result, 0);
-                
-            }
-        } 
+    if(line[i] == '='){
+    	aux = splitExpression(line.substr(i, line.size()));
+    	ex = verifyExpression(aux);
+    	assign->assignObject = ex;
+    	ex_l = static_cast<Expression*>(ex->statementClass);
+    	assign->variable = static_cast<Variable*>(ex_l->term->statementClass);
     }
 
-    return if_;
+    return assign;
 }
 
 Return* returnParser(string line){
 	Return *return_ = new Return();
 	ASTObject *ex;
 
-    ex = verifyExpression(line, 0);
+    ex = verifyExpression(line);
 
     return_->exp = static_cast<Expression*>(ex->statementClass);
     return return_ ;
@@ -624,38 +922,10 @@ Exit* exitParser(string line){
 	Exit *exit_ = new Exit();
 	ASTObject *ex;
 
-    ex = verifyExpression(line, 0);
+    ex = verifyExpression(line);
 
     exit_->exp = static_cast<Expression*>(ex->statementClass);
     return exit_;
-}
-
-string splitExpression(string line) {
-    int i = 0;
-    string value = "";
-    int openB = 0, closeB = 0;
-    while(true) {
-        if((openB == closeB && line[i] == ',') || (i == line.size())){
-            break;
-        }
-        if(line[i] == '(') openB++;
-        if(openB > closeB && line[i] == ')') closeB++;
-        value = value + line[i];
-        i++;
-    }
-
-    return value;
-}
-
-string isolatedExpression(string line) {
-    int i = 0;
-    string value = "";
-    while(line[i] != ',') {
-        value = value + line[i];
-        i++;
-    }
-    value = value + ')';
-    return value;
 }
 
 CondicionalExpression *mathOperator(string line) {
@@ -675,7 +945,7 @@ CondicionalExpression *mathOperator(string line) {
         //Esquerda
         ex_l = aux.substr(1, aux.size());
         ex_l = splitExpression(ex_l);
-        ex = verifyExpression(ex_l, 0);
+        ex = verifyExpression(ex_l);
 
         cond_ex->left = static_cast<Expression*>(ex->statementClass);
 
@@ -684,7 +954,7 @@ CondicionalExpression *mathOperator(string line) {
         ex_r = splitExpression(ex_r);
         aux = '(' + ex_r;
         ex_r = aux;
-        ex = verifyExpression(ex_r, 0);
+        ex = verifyExpression(ex_r);
 
         cond_ex->right = static_cast<Expression*>(ex->statementClass);
 
@@ -698,7 +968,7 @@ CondicionalExpression *mathOperator(string line) {
         //Esquerda
         ex_l = aux.substr(1, aux.size());
         ex_l = splitExpression(ex_l);
-        ex = verifyExpression(ex_l, 0);
+        ex = verifyExpression(ex_l);
 
         cond_ex->left = static_cast<Expression*>(ex->statementClass);
 
@@ -707,7 +977,7 @@ CondicionalExpression *mathOperator(string line) {
         ex_r = splitExpression(ex_r);
         aux = '(' + ex_r;
         ex_r = aux;
-        ex = verifyExpression(ex_r, 0);
+        ex = verifyExpression(ex_r);
 
         cond_ex->right = static_cast<Expression*>(ex->statementClass);
     } else if(line[i] == '<' && line[i+1] == '=') {
@@ -720,7 +990,7 @@ CondicionalExpression *mathOperator(string line) {
         //Esquerda
         ex_l = aux.substr(1, aux.size());
         ex_l = splitExpression(ex_l);
-        ex = verifyExpression(ex_l, 0);
+        ex = verifyExpression(ex_l);
 
         cond_ex->left = static_cast<Expression*>(ex->statementClass);
 
@@ -729,7 +999,7 @@ CondicionalExpression *mathOperator(string line) {
         ex_r = splitExpression(ex_r);
         aux = '(' + ex_r;
         ex_r = aux;
-        ex = verifyExpression(ex_r, 0);
+        ex = verifyExpression(ex_r);
 
         cond_ex->right = static_cast<Expression*>(ex->statementClass);
     } else if(line[i] == '>' && line[i+1] == '=') {
@@ -742,7 +1012,7 @@ CondicionalExpression *mathOperator(string line) {
         //Esquerda
         ex_l = aux.substr(1, aux.size());
         ex_l = splitExpression(ex_l);
-        ex = verifyExpression(ex_l, 0);
+        ex = verifyExpression(ex_l);
 
         cond_ex->left = static_cast<Expression*>(ex->statementClass);
 
@@ -751,7 +1021,7 @@ CondicionalExpression *mathOperator(string line) {
         ex_r = splitExpression(ex_r);
         aux = '(' + ex_r;
         ex_r = aux;
-        ex = verifyExpression(ex_r, 0);
+        ex = verifyExpression(ex_r);
 
         cond_ex->right = static_cast<Expression*>(ex->statementClass);
 
@@ -765,7 +1035,7 @@ CondicionalExpression *mathOperator(string line) {
         //Esquerda
         ex_l = aux.substr(1, aux.size());
         ex_l = splitExpression(ex_l);
-        ex = verifyExpression(ex_l, 0);
+        ex = verifyExpression(ex_l);
 
         cond_ex->left = static_cast<Expression*>(ex->statementClass);
 
@@ -774,7 +1044,7 @@ CondicionalExpression *mathOperator(string line) {
         ex_r = splitExpression(ex_r);
         aux = '(' + ex_r;
         ex_r = aux;
-        ex = verifyExpression(ex_r, 0);
+        ex = verifyExpression(ex_r);
 
         cond_ex->right = static_cast<Expression*>(ex->statementClass);
 
@@ -788,7 +1058,7 @@ CondicionalExpression *mathOperator(string line) {
         //Esquerda
         ex_l = aux.substr(1, aux.size());
         ex_l = splitExpression(ex_l);
-        ex = verifyExpression(ex_l, 0);
+        ex = verifyExpression(ex_l);
 
         cond_ex->left = static_cast<Expression*>(ex->statementClass);
 
@@ -797,7 +1067,7 @@ CondicionalExpression *mathOperator(string line) {
         ex_r = splitExpression(ex_r);
         aux = '(' + ex_r;
         ex_r = aux;
-        ex = verifyExpression(ex_r, 0);
+        ex = verifyExpression(ex_r);
 
         cond_ex->right = static_cast<Expression*>(ex->statementClass);
 
@@ -811,7 +1081,7 @@ CondicionalExpression *mathOperator(string line) {
         //Esquerda
         ex_l = aux.substr(1, aux.size());
         ex_l = splitExpression(ex_l);
-        ex = verifyExpression(ex_l, 0);
+        ex = verifyExpression(ex_l);
 
         cond_ex->left = static_cast<Expression*>(ex->statementClass);
 
@@ -825,7 +1095,7 @@ CondicionalExpression *mathOperator(string line) {
         //Esquerda
         ex_l = aux.substr(1, aux.size());
         ex_l = splitExpression(ex_l);
-        ex = verifyExpression(ex_l, 0);
+        ex = verifyExpression(ex_l);
 
         cond_ex->left = static_cast<Expression*>(ex->statementClass);
     } else if(line[i] == '&') {
@@ -838,7 +1108,7 @@ CondicionalExpression *mathOperator(string line) {
         //Esquerda
         ex_l = aux.substr(1, aux.size());
         ex_l = splitExpression(ex_l);
-        ex = verifyExpression(ex_l, 0);
+        ex = verifyExpression(ex_l);
 
         cond_ex->left = static_cast<Expression*>(ex->statementClass);
     }
@@ -858,7 +1128,6 @@ BoolOperatorCondicional *logicalOperator(string line) {
 		bool_op->boolOperator = "&&";
     	BoolOperatorCondicional *bool_op_aux = NULL;
     	aux = line.substr(i+2, line.size()-1);
-		cout << aux << endl;
 
 		//Esquerda
 		ex_l = aux.substr(1, aux.size());
@@ -915,7 +1184,6 @@ BoolOperatorCondicional *logicalOperator(string line) {
     return bool_op;
 }
 
-
 BoolOperatorCondicional *condicionalParser(string line) {
     int i = 0;
     string aux;
@@ -940,7 +1208,7 @@ BoolOperatorCondicional *condicionalParser(string line) {
     	bool_op = new BoolOperatorCondicional();
     	con_ex = new CondicionalExpression();
         aux = isolatedExpression(line);
-        ex = verifyExpression(aux, 0);
+        ex = verifyExpression(aux);
 
         con_ex->left = static_cast<Expression*>(ex->statementClass);
         bool_op->condExpLeft = con_ex;
@@ -950,6 +1218,34 @@ BoolOperatorCondicional *condicionalParser(string line) {
     return bool_op;
 }
 
+IF* ifParser(string line){
+	IF *if_ = new IF();
+    int i;
+    string aux, aux2;
+    BoolOperatorCondicional *bool_op;
+    Statement *statement1, *statement2;
+
+    aux = splitExpression(line.substr(1, line.size()));
+    aux = line.substr(aux.size()+2, line.size());
+    aux = aux.substr(0, aux.size()-1);
+    i = line.size() - aux.size() - 1;
+    bool_op = condicionalParser(line);
+    if_->condExp = bool_op;
+
+
+    aux = line.substr(i, line.size());
+    aux = aux.substr(0, aux.size()-1);
+    statement1  = bodyStatements(aux);
+    if_->statementListThen = statement1;
+
+
+    aux2 = splitExpression(aux);
+    aux = aux.substr(aux2.size()+1, aux.size());
+    statement2  = bodyStatements(aux);
+    if_->statementListElse = statement2;
+
+    return if_;
+}
 
 Assignment *initValues(string line){
 	Assignment *assign = new Assignment();
@@ -961,14 +1257,14 @@ Assignment *initValues(string line){
 
     if(line[i] == '='){
     	aux = splitExpression(line.substr(i, line.size()));
-    	ex = verifyExpression(aux, 0);
+    	ex = verifyExpression(aux);
     	assign->assignObject = ex;
-    	ex_l = static_cast<Expression*>(ex);
-    	assign->variable = static_cast<Variable*>(ex_l->term);
+    	ex_l = static_cast<Expression*>(ex->statementClass);
+    	assign->variable = static_cast<Variable*>(ex_l->term->statementClass);
     }
     else {
         aux = isolatedExpression(line.substr(i, line.size()));
-        ex = verifyExpression(aux, 0);
+        ex = verifyExpression(aux);
         assign->assignObject = ex;
     }
 
@@ -985,14 +1281,14 @@ Assignment *adjustValues(string line){
 
     if(line[i] == '='){
     	aux = splitExpression(line.substr(i, line.size()));
-    	ex = verifyExpression(aux, 0);
+    	ex = verifyExpression(aux);
     	assign->assignObject = ex;
-    	ex_l = static_cast<Expression*>(ex);
-    	assign->variable = static_cast<Variable*>(ex_l->term);
+    	ex_l = static_cast<Expression*>(ex->statementClass);
+    	assign->variable = static_cast<Variable*>(ex_l->term->statementClass);
     }
     else {
         aux = isolatedExpression(line.substr(i, line.size()));
-        ex = verifyExpression(aux, 0);
+        ex = verifyExpression(aux);
         assign->assignObject = ex;
     }
 
@@ -1059,44 +1355,6 @@ For *forParser(string line) {
     for_->statementList = statement;
 
     return for_;
-}
-
-
-Assignment *assignmentParser(string line){
-	Assignment *assign = new Assignment();
-    int i = 0;
-    string aux = "";
-    ASTObject *ex;
-    Expression *ex_l;
-    if(line[i] == '(') i++;
-
-    if(line[i] == '='){
-    	aux = splitExpression(line.substr(i, line.size()));
-    	ex = verifyExpression(aux, 0);
-    	assign->assignObject = ex;
-    	ex_l = static_cast<Expression*>(ex);
-    	assign->variable = static_cast<Variable*>(ex_l->term);
-    }
-
-    return assign;
-}
-
-
-string splitStatement(string line) {
-    int i = 0;
-    string value = "";
-    int openB = 0, closeB = 0;
-    while(true) {
-        if((openB == closeB && line[i] == ';') || (i == line.size())){
-            break;
-        }
-        if(line[i] == '(') openB++;
-        if(line[i] == ')') closeB++;
-        value = value + line[i];
-        i++;
-    }
-
-    return value;
 }
 
 
