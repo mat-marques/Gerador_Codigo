@@ -98,10 +98,11 @@ string strtoupper(string str)
 
 Printf *printParser(string line){
 	Printf *printf_ = new Printf();
-
+    vector<string> variaveis;
     int n = line.size();
-    int i, j;
-    string aux;
+    int i, j, z, index;
+    int cont = 0;
+    string aux, result;
     /* Provavelmente tenho que arrumar algo nessa busca pelo ',' */
     i = get_argumentIndex(',', line.size(), 0, line);
     if(line[i-1] != '"'){
@@ -109,6 +110,7 @@ Printf *printParser(string line){
         j = get_argumentIndex('"', line.size(), i+1, line);
         j = j-i-1;
         aux = line.substr(i+1, j);
+        printf_->message.push_back(aux);
         cout << "IMPRIMINDO SEM VARIAVEIS: " << aux << endl;
         
     }
@@ -118,10 +120,18 @@ Printf *printParser(string line){
         aux = line.substr(i, j);
         /*Verificar tipo da variavel */
         i = 0; 
+        z = 0;
         while(i != -1){
             i = get_argumentIndex('%', aux.size(), i, aux);
             if(i != -1){
+                cont++;
+                index = i - 1 - z;
+                result = line.substr(z, index);
+                printf_->message.push_back(result);
                 if(aux[i+1] == 'd'){
+                    result.clear();
+                    result = line.substr(i, 1);
+                    printf_->message.push_back(result);
                     cout << "IMPRIMINDO INT" << endl;
                 }
                 if(aux[i+1] == 'c'){
@@ -134,6 +144,7 @@ Printf *printParser(string line){
                     cout << "IMPRIMINDO STRING" << endl;
                 }
                 i++;
+                z = i+1;
             }    
         }
         aux.clear();
@@ -146,7 +157,40 @@ Printf *printParser(string line){
         }
         j = j-i-1;
         aux = line.substr(i+1, j);
-        cout << "VARIAVEIS A SEREM PRINTADAS: " << aux << endl;
+        variaveis = splitText(aux, ",");
+        Expression *exp;
+        if(variaveis.size() == cont){
+            for(int varCont = 0; varCont < variaveis.size(); varCont++){
+                exp = verifyExpression(variaveis[varCont]);
+                printf_->paramsList.push_back(exp);
+            }
+        }
+        else{
+            int fecha = 0, abre = 0;
+            z = 0;
+            for(i = 0; i < aux; i++){
+                if(aux[i] == ',' && abre == fecha){
+                    result.clear()
+                    index = i - 1 - z;
+                    result = aux.substr(z, index);
+                    exp = verifyExpression(result);
+                    printf_->paramsList.push_back(exp);
+                }
+                else if(aux[i] == '('){
+                    abre++;
+                }
+                else if(aux[i] == ')'){
+                    fecha++;
+                    if(abre == fecha){
+                        result.clear()
+                        index = i - 1 - z;
+                        result = aux.substr(z, index);
+                        exp = verifyExpression(result);
+                        printf_->paramsList.push_back(exp);
+                    }
+                }
+            }
+        }
     }
     return printf_;
 }
@@ -155,8 +199,10 @@ Scanf *scanfParser(string line){
 	Scanf *scanf_ = new Scanf();
 
     int n = line.size();
-    int i, j;
+    int i, j, z;
     string aux;
+    string result;
+    int cont;
     i = get_argumentIndex(',', line.size(), 0, line);
     if(line[i-1] == '"'){
         i = get_argumentIndex('"', line.size(), 0, line);
@@ -168,6 +214,8 @@ Scanf *scanfParser(string line){
             i = get_argumentIndex('%', aux.size(), i, aux);
             if(i != -1){
                 if(aux[i+1] == 'd'){
+                    result = aux.substr(i, 1);
+                    scanf->message.push_back(result);
                     cout << "LER INT" << endl;
                 }
                 if(aux[i+1] == 'c'){
@@ -180,15 +228,22 @@ Scanf *scanfParser(string line){
                     cout << "LER STRING" << endl;
                 }
                 i++;
+                cont++;
             }    
         }
-        aux.clear();
-        i = get_argumentIndex(',', line.size(), j+1, line);
-        j = get_argumentIndex('(', line.size(), i+1, line);        
-        i = get_argumentIndex(')', line.size(), j+1, line);
-        i = i-j-1;
-        aux = line.substr(j+1, i);
-        cout << "Lendo variavel: " << aux << endl;
+        while(cont > 0){
+            Expression *exp;
+            aux.clear();
+            i = get_argumentIndex(',', line.size(), j+1, line);
+            j = get_argumentIndex('(', line.size(), i+1, line);        
+            i = get_argumentIndex(')', line.size(), j+1, line);
+            z = i;
+            i = i-j-1;
+            aux = line.substr(j+1, i);
+            exp = verifyExpression(aux);
+            scanf->paramsList.push_back(exp);
+            i = z;
+        }
     }
 
     return scanf_;
@@ -901,7 +956,7 @@ ASTObject* verifyExpression(string line) {
                 index = get_argumentIndex(',', line.size(), index+1, line);
                 /*Verifica se existe a direita*/
                 if(index != -1){
-                    aux.clear()
+                    aux.clear()                   
                     z = line.size() - (index+1);
                     aux = line.substr(index+1, z);
                     /* Verifica expressão da direita*/
@@ -961,8 +1016,6 @@ ASTObject* verifyExpression(string line) {
                 result = line.substr(i, line.size()-1);
             }
         }
-
-
 	}
 	return ast;
 }
